@@ -41,6 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt->execute($params);
                 $message = "Profile updated successfully!";
+                $_SESSION['username'] = $username;
+                if ($avatarSql !== "") {
+                    $_SESSION['avatar'] = 'uploads/' . $filename;
+                }
             } catch (\PDOException $e) {
                 if ($e->getCode() == 23000) {
                     $error = "Username already taken.";
@@ -52,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['remove_avatar'])) {
         $stmt = $pdo->prepare("UPDATE users SET avatar_url = NULL WHERE id = ?");
         $stmt->execute([$userId]);
+        $_SESSION['avatar'] = null;
         $message = "Avatar removed successfully!";
     } elseif (isset($_POST['delete_account'])) {
         $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");

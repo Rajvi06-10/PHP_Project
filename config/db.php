@@ -1,4 +1,8 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params(30 * 24 * 60 * 60); // 30 days
+    session_start();
+}
 $host = '127.0.0.1';
 $db   = 'zyva_db';
 $user = 'root';

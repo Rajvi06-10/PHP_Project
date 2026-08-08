@@ -282,7 +282,7 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
                     <div class="grid-video-card cursor-pointer">
                         <video src="../<?= htmlspecialchars($video['file_path']) ?>" style="width: 100%; height: 100%; object-fit: cover;"></video>
                         <div class="grid-video-stats">
-                            <i data-lucide="play" style="width: 14px; height: 14px;"></i> <?= number_format($video['view_count']) ?>
+                            <i data-lucide="play" style="width: 14px; height: 14px;"></i> <?= number_format($video['views']) ?>
                         </div>
                     </div>
                     <?php endforeach; ?>
