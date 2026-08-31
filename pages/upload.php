@@ -3,7 +3,7 @@ session_start();
 require_once '../config/db.php';
 
 $username = $_SESSION['username'] ?? 'User';
-$sessionAvatar = $_SESSION['avatar'] ?? 'https://i.pravatar.cc/150?img=11';
+$sessionAvatar = isset($_SESSION['avatar']) && $_SESSION['avatar'] ? (strpos($_SESSION['avatar'], 'http') === 0 ? $_SESSION['avatar'] : '../' . $_SESSION['avatar']) : 'https://i.pravatar.cc/150?img=11';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth.php");

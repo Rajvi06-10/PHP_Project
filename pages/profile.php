@@ -3,7 +3,7 @@ session_start();
 require_once '../config/db.php';
 
 $username = $_SESSION['username'] ?? 'User';
-$sessionAvatar = $_SESSION['avatar'] ?? 'https://i.pravatar.cc/150?img=11';
+$sessionAvatar = isset($_SESSION['avatar']) && $_SESSION['avatar'] ? (strpos($_SESSION['avatar'], 'http') === 0 ? $_SESSION['avatar'] : '../' . $_SESSION['avatar']) : 'https://i.pravatar.cc/150?img=11';
 
 $profileUserId = $_SESSION['user_id'] ?? null;
 
@@ -21,6 +21,14 @@ if (!$profileUser) {
 }
 
 $avatarSrc = $profileUser['avatar_url'] ? (strpos($profileUser['avatar_url'], 'http') === 0 ? $profileUser['avatar_url'] : '../' . $profileUser['avatar_url']) : 'https://i.pravatar.cc/150?img=11';
+
+$loggedInUserId = $_SESSION['user_id'] ?? null;
+$followed_ids = [];
+if ($loggedInUserId) {
+    $stmt = $pdo->prepare("SELECT following_id FROM follows WHERE follower_id = ?");
+    $stmt->execute([$loggedInUserId]);
+    $followed_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
 
 $activeTab = $_GET['tab'] ?? 'videos';
 
@@ -259,7 +267,10 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
                                 Edit Profile
                             </a>
                             <?php else: ?>
-                            <button class="btn btn-primary">Follow</button>
+                            <?php $isFollowing = in_array($profileUserId, $followed_ids); ?>
+                            <button class="btn <?= $isFollowing ? 'btn-secondary' : 'btn-primary' ?>" onclick="toggleFollow(<?= $profileUserId ?>, this)">
+                                <?= $isFollowing ? 'Following' : 'Follow' ?>
+                            </button>
                             <?php endif; ?>
                         </div>
                         
@@ -309,5 +320,30 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
             </div> <!-- /main-content-inner -->
         </main>
     </div>
+
+    <script>
+        async function toggleFollow(userId, btnEl) {
+            try {
+                const formData = new FormData();
+                formData.append('action', 'toggle_follow');
+                formData.append('following_id', userId);
+                
+                const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.success) {
+                    if (data.status === 'followed') {
+                        btnEl.textContent = 'Following';
+                        btnEl.classList.remove('btn-primary');
+                        btnEl.classList.add('btn-secondary');
+                    } else {
+                        btnEl.textContent = 'Follow';
+                        btnEl.classList.remove('btn-secondary');
+                        btnEl.classList.add('btn-primary');
+                    }
+                }
+            } catch(e) { console.error('Follow failed', e); }
+        }
+    </script>
 </body>
 </html>

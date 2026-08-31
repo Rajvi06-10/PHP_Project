@@ -227,26 +227,49 @@ async function toggleSave(videoId, btnEl) {
     } catch(e) { console.error('Save failed', e); }
 }
 
+let currentCommentVideoId = null;
+let currentCommentBtnSpan = null;
+
 async function addComment(videoId, btnEl) {
-    const comment = prompt("Add a comment:");
-    if (!comment || comment.trim() === '') return;
+    currentCommentVideoId = videoId;
+    // Handle case where btnEl might just be a mock object during a re-fetch
+    currentCommentBtnSpan = btnEl.querySelector ? btnEl.querySelector('span') : btnEl;
+    
+    const overlay = document.getElementById('commentsOverlay');
+    const modal = document.getElementById('commentsModal');
+    if(overlay) overlay.classList.add('active');
+    if(modal) modal.classList.add('active');
+    
+    const container = document.getElementById('commentsContainer');
+    if(!container) return;
+    
+    container.innerHTML = '<div style="text-align:center; padding: 20px;">Loading...</div>';
     
     try {
-        const formData = new FormData();
-        formData.append('action', 'add_comment');
-        formData.append('video_id', videoId);
-        formData.append('content', comment.trim());
-        
-        const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+        const res = await fetch('../api/comments.php?video_id=' + videoId);
         const data = await res.json();
         
-        if (data.success) {
-            const span = btnEl.querySelector('span');
-            let count = parseInt(span.textContent) || 0;
-            span.textContent = count + 1;
-            alert("Comment added!");
+        container.innerHTML = '';
+        if (data.success && data.comments.length > 0) {
+            data.comments.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'comment-item';
+                el.innerHTML = `
+                    <img src="${c.avatar_url}" class="comment-avatar">
+                    <div class="comment-content">
+                        <div class="comment-username">${c.username}</div>
+                        <div class="comment-text">${c.comment_text}</div>
+                        <div class="comment-time">${c.created_at}</div>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        } else {
+            container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--color-text-secondary);">No comments yet. Be the first!</div>';
         }
-    } catch(e) { console.error('Comment failed', e); }
+    } catch(e) {
+        container.innerHTML = '<div style="text-align:center; padding: 20px; color: red;">Failed to load comments.</div>';
+    }
 }
 
 function shareVideo(filePath) {
@@ -260,3 +283,50 @@ function shareVideo(filePath) {
         prompt("Copy this link to share:", url);
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('closeCommentsBtn')?.addEventListener('click', () => {
+        document.getElementById('commentsOverlay')?.classList.remove('active');
+        document.getElementById('commentsModal')?.classList.remove('active');
+    });
+    
+    document.getElementById('commentsOverlay')?.addEventListener('click', () => {
+        document.getElementById('commentsOverlay')?.classList.remove('active');
+        document.getElementById('commentsModal')?.classList.remove('active');
+    });
+    
+    const commentInput = document.getElementById('newCommentInput');
+    const postBtn = document.getElementById('postCommentBtn');
+    
+    if (commentInput && postBtn) {
+        commentInput.addEventListener('input', () => {
+            postBtn.disabled = commentInput.value.trim().length === 0;
+        });
+        
+        postBtn.addEventListener('click', async () => {
+            const text = commentInput.value.trim();
+            if (!text || !currentCommentVideoId) return;
+            
+            postBtn.disabled = true;
+            try {
+                const formData = new FormData();
+                formData.append('action', 'add_comment');
+                formData.append('video_id', currentCommentVideoId);
+                formData.append('content', text);
+                
+                const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.success) {
+                    commentInput.value = '';
+                    if (currentCommentBtnSpan) {
+                        currentCommentBtnSpan.textContent = data.count;
+                    }
+                    // Refresh comments list
+                    addComment(currentCommentVideoId, currentCommentBtnSpan);
+                }
+            } catch(e) { console.error('Post failed', e); }
+            postBtn.disabled = false;
+        });
+    }
+});

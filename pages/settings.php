@@ -3,7 +3,7 @@ session_start();
 require_once '../config/db.php';
 
 $sessionUsername = $_SESSION['username'] ?? 'User';
-$sessionAvatar = $_SESSION['avatar'] ?? 'https://i.pravatar.cc/150?img=11';
+$sessionAvatar = isset($_SESSION['avatar']) && $_SESSION['avatar'] ? (strpos($_SESSION['avatar'], 'http') === 0 ? $_SESSION['avatar'] : '../' . $_SESSION['avatar']) : 'https://i.pravatar.cc/150?img=11';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth.php");
@@ -15,7 +15,7 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['update_profile'])) {
+    if (isset($_POST['save_profile'])) {
         $username = $_POST['username'] ?? '';
         $bio = $_POST['bio'] ?? '';
         
@@ -319,7 +319,6 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                         <?php if($error): ?><div style="color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 4px; margin-bottom: 15px;"><?= $error ?></div><?php endif; ?>
 
                         <form method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="update_profile" value="1">
                             <div class="flex items-center gap-6 mb-8">
                                 <img src="<?= htmlspecialchars($avatarSrc) ?>" alt="Avatar" class="avatar avatar-xl">
                                 <div class="flex flex-col gap-2">
@@ -343,7 +342,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                             </div>
 
                             <div class="flex justify-end mt-6">
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                <button type="submit" name="save_profile" value="1" class="btn btn-primary">Save Changes</button>
                             </div>
                         </form>
                     </section>

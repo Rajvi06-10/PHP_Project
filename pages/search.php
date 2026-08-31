@@ -3,9 +3,17 @@ session_start();
 require_once '../config/db.php';
 
 $username = $_SESSION['username'] ?? 'User';
-$sessionAvatar = $_SESSION['avatar'] ?? 'https://i.pravatar.cc/150?img=11';
+$sessionAvatar = isset($_SESSION['avatar']) && $_SESSION['avatar'] ? (strpos($_SESSION['avatar'], 'http') === 0 ? $_SESSION['avatar'] : '../' . $_SESSION['avatar']) : 'https://i.pravatar.cc/150?img=11';
 
 $searchQuery = $_GET['q'] ?? '';
+
+$user_id = $_SESSION['user_id'] ?? null;
+$followed_ids = [];
+if ($user_id) {
+    $stmt = $pdo->prepare("SELECT following_id FROM follows WHERE follower_id = ?");
+    $stmt->execute([$user_id]);
+    $followed_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
 
 if (!empty($searchQuery)) {
     $searchParam = '%' . $searchQuery . '%';
@@ -173,7 +181,12 @@ if (!empty($searchQuery)) {
                                     <p class="text-sm text-secondary truncate" style="max-width: 200px;"><?= htmlspecialchars($creator['bio'] ?: 'No bio available') ?></p>
                                 </div>
                             </div>
-                            <button class="btn btn-primary" onclick="toggleFollow(<?= $creator['id'] ?>, this)">Follow</button>
+                            <?php $isFollowing = in_array($creator['id'], $followed_ids); ?>
+                            <?php if ($creator['id'] != $user_id): ?>
+                            <button class="btn <?= $isFollowing ? 'btn-secondary' : 'btn-primary' ?>" onclick="toggleFollow(<?= $creator['id'] ?>, this)">
+                                <?= $isFollowing ? 'Following' : 'Follow' ?>
+                            </button>
+                            <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
                     </div>

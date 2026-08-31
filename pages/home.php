@@ -7,7 +7,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$avatarSrc = $_SESSION['avatar'] ?? 'https://i.pravatar.cc/150?img=11';
+$sessionAvatar = isset($_SESSION['avatar']) && $_SESSION['avatar'] ? (strpos($_SESSION['avatar'], 'http') === 0 ? $_SESSION['avatar'] : '../' . $_SESSION['avatar']) : 'https://i.pravatar.cc/150?img=11';
+$avatarSrc = $sessionAvatar;
 $username = $_SESSION['username'] ?? 'User';
 ?>
 <!DOCTYPE html>
@@ -399,6 +400,24 @@ $username = $_SESSION['username'] ?? 'User';
 
             </div> <!-- /main-content-inner -->
         </main>
+    </div>
+
+    <!-- Comments Modal -->
+    <div class="comments-overlay" id="commentsOverlay"></div>
+    <div class="comments-modal" id="commentsModal">
+        <div class="comments-header">
+            <h3>Comments</h3>
+            <button class="close-comments" id="closeCommentsBtn">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="comments-body" id="commentsContainer">
+            <!-- Comments injected via JS -->
+        </div>
+        <div class="comments-footer">
+            <input type="text" class="comment-input" id="newCommentInput" placeholder="Add a comment...">
+            <button class="btn-post-comment" id="postCommentBtn" disabled>Post</button>
+        </div>
     </div>
 
     <!-- Swiper JS -->
