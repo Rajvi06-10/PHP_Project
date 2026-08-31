@@ -251,6 +251,10 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                     <i data-lucide="search"></i>
                     <span>Search</span>
                 </a>
+                <a href="reels.php" class="sidebar-link">
+                    <i data-lucide="play-circle"></i>
+                    <span>Reels</span>
+                </a>
                 <a href="upload.php" class="sidebar-link">
                     <i data-lucide="plus-square"></i>
                     <span>Create</span>
@@ -279,38 +283,39 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="main-content-inner" style="max-width: 1000px; display: flex; flex-direction: column;">
+            <div class="main-content-inner" style="max-width: 1000px;">
             
-            <!-- Settings Navigation -->
-            <aside class="settings-nav">
-                <div class="settings-nav-item active" data-target="profile">
-                    <i data-lucide="user"></i>
-                    Profile
-                </div>
-                <div class="settings-nav-item" data-target="appearance">
-                    <i data-lucide="palette"></i>
-                    Appearance
-                </div>
-                <div class="settings-nav-item" data-target="privacy">
-                    <i data-lucide="lock"></i>
-                    Privacy & Safety
-                </div>
-                <div class="settings-nav-item" data-target="notifications">
-                    <i data-lucide="bell"></i>
-                    Notifications
-                </div>
-                <div class="settings-nav-item" data-target="language">
-                    <i data-lucide="globe"></i>
-                    Language
-                </div>
-            </aside>
+            <div class="settings-layout">
+                <!-- Settings Navigation -->
+                <aside class="settings-nav">
+                    <h1 class="h3 mb-6" style="padding-left: 16px;">Settings</h1>
+                    <div class="settings-nav-item active" data-target="profile">
+                        <i data-lucide="user"></i>
+                        Profile
+                    </div>
+                    <div class="settings-nav-item" data-target="appearance">
+                        <i data-lucide="palette"></i>
+                        Appearance
+                    </div>
+                    <div class="settings-nav-item" data-target="privacy">
+                        <i data-lucide="lock"></i>
+                        Privacy & Safety
+                    </div>
+                    <div class="settings-nav-item" data-target="notifications">
+                        <i data-lucide="bell"></i>
+                        Notifications
+                    </div>
+                    <div class="settings-nav-item" data-target="language">
+                        <i data-lucide="globe"></i>
+                        Language
+                    </div>
+                </aside>
 
-            <!-- Settings Content -->
-            <main class="settings-content">
-                <h1 class="h3 mb-6">Settings</h1>
+                <!-- Settings Content -->
+                <main class="settings-content">
 
-                <!-- Profile Section -->
-                <div id="section-profile" class="settings-panel">
+                    <!-- Profile Section -->
+                    <div id="section-profile" class="settings-panel">
                     <section class="settings-section">
                         <h2 class="settings-section-title">Edit Profile</h2>
                         <p class="settings-section-desc">Manage your public profile information.</p>
@@ -465,7 +470,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                         });
                     });
                 </script>
-
+            </div> <!-- /settings-layout -->
             </div> <!-- /main-content-inner -->
         </main>
     </div>

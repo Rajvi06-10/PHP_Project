@@ -143,6 +143,10 @@ if (!empty($searchQuery)) {
                     <i data-lucide="search"></i>
                     <span>Search</span>
                 </a>
+                <a href="reels.php" class="sidebar-link">
+                    <i data-lucide="play-circle"></i>
+                    <span>Reels</span>
+                </a>
                 <a href="upload.php" class="sidebar-link">
                     <i data-lucide="plus-square"></i>
                     <span>Create</span>
@@ -171,79 +175,81 @@ if (!empty($searchQuery)) {
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="main-content-inner" style="max-width: 800px;">
+            <div class="main-content-inner" style="max-width: 800px; padding: 40px 20px;">
                 
-                <div class="search-header">
-                    <form action="search.php" method="GET" class="input-icon-wrapper w-full">
-                        <i data-lucide="search"></i>
-                        <input type="text" name="q" class="input-field" placeholder="Search hashtags, creators, or videos..." style="font-size: var(--text-lg); padding: var(--spacing-4) var(--spacing-12);" value="<?= htmlspecialchars($searchQuery) ?>">
+                <div class="search-header" style="margin-bottom: 40px;">
+                    <form action="search.php" method="GET" style="position: relative; width: 100%;">
+                        <i data-lucide="search" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: var(--color-text-tertiary); width: 20px; height: 20px;"></i>
+                        <input type="text" name="q" class="input-field" placeholder="Search hashtags, creators, or videos..." 
+                               style="width: 100%; font-size: 16px; padding: 16px 20px 16px 52px; border-radius: 12px; background-color: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-primary); transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.02);" 
+                               value="<?= htmlspecialchars($searchQuery) ?>">
                     </form>
                 </div>
                 
-                <div class="py-6 mt-6">
-                    <h3 class="h4 mb-4">
+                <div>
+                    <h3 class="h4 mb-4" style="font-weight: 700;">
                         <?= !empty($searchQuery) ? 'Creator Results' : 'Trending Creators' ?>
                     </h3>
-                    <div class="card mb-8">
+                    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; margin-bottom: 40px;">
                         <?php foreach($creators as $creator): 
                             $cAvatar = $creator['avatar_url'] ? (strpos($creator['avatar_url'], 'http') === 0 ? $creator['avatar_url'] : '../' . $creator['avatar_url']) : 'https://i.pravatar.cc/150?img=11';
                         ?>
-                        <div class="creator-card">
+                        <div class="creator-card" style="display: flex; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid var(--color-border);">
                             <div class="flex items-center gap-4">
-                                <img src="<?= htmlspecialchars($cAvatar) ?>" class="avatar avatar-lg">
+                                <img src="<?= htmlspecialchars($cAvatar) ?>" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(0,0,0,0.1);">
                                 <div>
-                                    <h4 class="font-semibold text-lg">@<?= htmlspecialchars($creator['username']) ?></h4>
+                                    <h4 class="font-semibold text-base" style="margin-bottom: 2px;">@<?= htmlspecialchars($creator['username']) ?></h4>
                                     <p class="text-sm text-secondary truncate" style="max-width: 200px;"><?= htmlspecialchars($creator['bio'] ?: 'No bio available') ?></p>
                                 </div>
                             </div>
                             <?php $isFollowing = in_array($creator['id'], $followed_ids); ?>
                             <?php if ($creator['id'] != $user_id): ?>
-                            <button class="btn <?= $isFollowing ? 'btn-secondary' : 'btn-primary' ?>" onclick="toggleFollow(<?= $creator['id'] ?>, this)">
+                            <button class="btn <?= $isFollowing ? 'btn-secondary' : 'btn-primary' ?>" onclick="toggleFollow(<?= $creator['id'] ?>, this)" style="border-radius: 20px; padding: 8px 16px; font-size: 13px;">
                                 <?= $isFollowing ? 'Following' : 'Follow' ?>
                             </button>
                             <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
                         <?php if(empty($creators)): ?>
-                            <div style="padding: 20px; text-align: center; color: var(--color-text-secondary);">No creators found.</div>
+                            <div style="padding: 30px; text-align: center; color: var(--color-text-secondary); font-size: 14px;">No creators found.</div>
                         <?php endif; ?>
                     </div>
                     
                     <?php if (!empty($searchQuery)): ?>
-                    <h3 class="h4 mb-4 mt-8">Categories</h3>
-                    <div class="flex flex-wrap gap-2 mb-8">
+                    <h3 class="h4 mb-4" style="font-weight: 700;">Categories</h3>
+                    <div class="flex flex-wrap gap-2 mb-8" style="margin-bottom: 40px;">
                         <?php foreach($found_categories as $cat): ?>
-                            <a href="home.php" class="btn btn-secondary" style="border-radius: 20px;">
+                            <a href="home.php" class="btn btn-secondary" style="border-radius: 24px; padding: 8px 16px; font-weight: 500; font-size: 14px; text-decoration: none; border: 1px solid var(--color-border); background: var(--color-surface);">
                                 <?= htmlspecialchars($cat['name']) ?>
                             </a>
                         <?php endforeach; ?>
                         <?php if(empty($found_categories)): ?>
-                            <div style="color: var(--color-text-secondary);">No categories found.</div>
+                            <div style="color: var(--color-text-secondary); font-size: 14px;">No categories found.</div>
                         <?php endif; ?>
                     </div>
 
-                    <h3 class="h4 mb-4 mt-8">Hashtags</h3>
-                    <div class="flex flex-wrap gap-2 mb-8">
+                    <h3 class="h4 mb-4" style="font-weight: 700;">Hashtags</h3>
+                    <div class="flex flex-wrap gap-2 mb-8" style="margin-bottom: 40px;">
                         <?php foreach($found_hashtags as $tag): ?>
-                            <a href="search.php?q=<?= urlencode($tag['tag']) ?>" class="btn btn-secondary" style="border-radius: 20px;">
+                            <a href="search.php?q=<?= urlencode($tag['tag']) ?>" class="btn btn-secondary" style="border-radius: 24px; padding: 8px 16px; font-weight: 500; font-size: 14px; text-decoration: none; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-primary);">
                                 #<?= htmlspecialchars($tag['tag']) ?>
                             </a>
                         <?php endforeach; ?>
                         <?php if(empty($found_hashtags)): ?>
-                            <div style="color: var(--color-text-secondary);">No hashtags found.</div>
+                            <div style="color: var(--color-text-secondary); font-size: 14px;">No hashtags found.</div>
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>
 
-                    <h3 class="h4 mb-4 mt-8">
+                    <h3 class="h4 mb-4" style="font-weight: 700;">
                         <?= !empty($searchQuery) ? 'Video Results' : 'Trending Videos' ?>
                     </h3>
-                    <div class="grid-videos">
+                    <div class="grid-videos" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
                         <?php foreach($videos as $video): ?>
-                        <div class="grid-video-card cursor-pointer">
+                        <div class="grid-video-card cursor-pointer" style="aspect-ratio: 9/16; border-radius: 12px; background: #111; overflow: hidden; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                             <video src="../<?= htmlspecialchars($video['file_path']) ?>" style="width: 100%; height: 100%; object-fit: cover;"></video>
-                            <div class="grid-video-info">
-                                <div class="flex items-center gap-1 mb-1">
+                            <div class="grid-video-info" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 12px 12px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); color: white;">
+                                <div class="flex items-center gap-2 mb-1">
                                     <i data-lucide="play" style="width: 14px; height: 14px;"></i> <?= number_format($video['view_count']) ?>
                                 </div>
                                 <span class="tag" style="font-size: 10px; padding: 2px 6px;">@<?= htmlspecialchars($video['username']) ?></span>

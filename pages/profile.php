@@ -5,7 +5,7 @@ require_once '../config/db.php';
 $username = $_SESSION['username'] ?? 'User';
 $sessionAvatar = isset($_SESSION['avatar']) && $_SESSION['avatar'] ? (strpos($_SESSION['avatar'], 'http') === 0 ? $_SESSION['avatar'] : '../' . $_SESSION['avatar']) : 'https://i.pravatar.cc/150?img=11';
 
-$profileUserId = $_SESSION['user_id'] ?? null;
+$profileUserId = $_GET['id'] ?? $_SESSION['user_id'] ?? null;
 
 if (!$profileUserId) {
     header("Location: auth.php");
@@ -219,6 +219,10 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
                 <a href="search.php" class="sidebar-link">
                     <i data-lucide="search"></i>
                     <span>Search</span>
+                </a>
+                <a href="reels.php" class="sidebar-link">
+                    <i data-lucide="play-circle"></i>
+                    <span>Reels</span>
                 </a>
                 <a href="upload.php" class="sidebar-link">
                     <i data-lucide="plus-square"></i>

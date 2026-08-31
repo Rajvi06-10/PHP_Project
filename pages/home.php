@@ -10,6 +10,10 @@ if (!isset($_SESSION['user_id'])) {
 $sessionAvatar = isset($_SESSION['avatar']) && $_SESSION['avatar'] ? (strpos($_SESSION['avatar'], 'http') === 0 ? $_SESSION['avatar'] : '../' . $_SESSION['avatar']) : 'https://i.pravatar.cc/150?img=11';
 $avatarSrc = $sessionAvatar;
 $username = $_SESSION['username'] ?? 'User';
+
+// Fetch all videos for home feed (Instagram style)
+$stmt = $pdo->query("SELECT v.*, u.username, u.avatar_url FROM videos v JOIN users u ON v.user_id = u.id ORDER BY v.created_at DESC");
+$feedVideos = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -18,324 +22,111 @@ $username = $_SESSION['username'] ?? 'User';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swipe Nest - Home</title>
     
-    <!-- Design System CSS -->
     <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/globals.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/components.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/layout.css?v=<?= time() ?>">
     
-    <!-- Swiper CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        /* Dashboard specific styles */
-        .welcome-header {
-            margin-bottom: var(--spacing-6);
+        .feed-container {
+            max-width: 470px;
+            margin: 0 auto;
+            padding-top: 20px;
+            padding-bottom: 80px;
         }
         
-        .welcome-header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 4px;
+        .post-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 24px;
+            overflow: hidden;
         }
         
-        .welcome-header p {
-            color: var(--color-text-secondary);
-            font-size: var(--text-base);
-        }
-
-        /* Category Pills */
-        .category-pills-container {
+        .post-header {
             display: flex;
             align-items: center;
-            gap: var(--spacing-3);
-            margin-bottom: var(--spacing-6);
-            overflow-x: auto;
-            padding-bottom: 8px;
-            scrollbar-width: none;
+            padding: 14px;
+            gap: 12px;
         }
         
-        .category-pills-container::-webkit-scrollbar { display: none; }
-        
-        .category-pill {
-            padding: 8px 20px;
-            background-color: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-full);
-            color: var(--color-text-secondary);
-            font-size: var(--text-sm);
-            font-weight: 500;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all var(--transition-fast);
-        }
-        
-        .category-pill:hover {
-            background-color: var(--color-surface-hover);
-        }
-        
-        .category-pill.active {
-            background-color: var(--color-primary);
-            color: white;
-            border-color: var(--color-primary);
-        }
-        
-        .nav-arrow {
+        .post-header img {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background-color: var(--color-surface);
-            border: 1px solid var(--color-border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        /* Video Carousel - 2D Navigation */
-        .video-carousel-container {
-            margin-bottom: var(--spacing-10);
-            position: relative;
-            height: calc(100vh - 200px);
-            max-height: 750px;
-            width: 100%;
-            max-width: 420px;
-            margin-left: auto;
-            margin-right: auto;
-            border-radius: 16px;
-            overflow: hidden;
-            background: #000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        }
-        
-        .swiper-horizontal-root {
-            width: 100%;
-            height: 100%;
-        }
-
-        .swiper-vertical-category {
-            width: 100%;
-            height: 100%;
-        }
-        
-        .video-card {
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .video-thumbnail {
-            width: 100%;
-            height: 100%;
             object-fit: cover;
         }
         
-        .card-top-left {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
+        .post-header .username {
             font-weight: 600;
-            z-index: 10;
-        }
-        
-        .card-top-right {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            color: white;
-            z-index: 10;
-            cursor: pointer;
-        }
-        
-        .card-actions-right {
-            position: absolute;
-            right: 8px;
-            bottom: 60px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            z-index: 10;
-        }
-        
-        .card-action {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            color: white;
-            font-size: 11px;
-            font-weight: 600;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-        }
-        
-        .card-action i {
-            width: 20px;
-            height: 20px;
-            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
-        }
-        
-        .card-bottom-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-            color: white;
-            z-index: 10;
-        }
-        
-        .card-user {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 6px;
-        }
-        
-        .card-user img {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 1px solid white;
-        }
-        
-        .card-user span {
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .card-caption {
-            font-size: 12px;
-            line-height: 1.4;
-            margin-bottom: 4px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        .card-tags {
-            font-size: 11px;
-            color: rgba(255,255,255,0.8);
-        }
-
-        /* Suggestions Section */
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: var(--spacing-4);
+            font-size: 14px;
             color: var(--color-text-primary);
-        }
-
-        .suggestions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: var(--spacing-4);
-            margin-bottom: var(--spacing-8);
-        }
-        
-        .suggestion-card {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            padding: var(--spacing-3) var(--spacing-4);
-            border-radius: var(--radius-lg);
-        }
-
-        .suggestion-info {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-3);
-        }
-
-        .suggestion-info img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-        }
-
-        .suggestion-details h4 {
-            font-size: var(--text-sm);
-            font-weight: 600;
-            color: var(--color-text-primary);
-        }
-        
-        .suggestion-details p {
-            font-size: var(--text-xs);
-            color: var(--color-text-tertiary);
-        }
-
-        .btn-follow {
-            color: var(--color-primary);
-            background: transparent;
-            border: 1px solid var(--color-border);
-            padding: 4px 12px;
-            border-radius: var(--radius-full);
-            font-size: var(--text-xs);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-        }
-
-        .btn-follow:hover {
-            border-color: var(--color-primary);
-            background: rgba(106, 76, 255, 0.05);
-        }
-
-        /* Hashtags Section */
-        .hashtags-container {
-            display: flex;
-            gap: var(--spacing-4);
-            overflow-x: auto;
-            padding-bottom: 8px;
-        }
-
-        .hashtag-item {
-            color: var(--color-primary);
-            font-size: var(--text-sm);
-            font-weight: 500;
-            cursor: pointer;
-        }
-        
-        .btn-primary {
-            background-color: var(--color-primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: background-color var(--transition-fast);
             text-decoration: none;
+        }
+        
+        .post-media {
+            width: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
             justify-content: center;
         }
-        .btn-primary:hover {
-            background-color: var(--color-primary-hover);
+        
+        .post-video {
+            width: 100%;
+            max-height: 600px;
+            object-fit: contain;
+        }
+        
+        .post-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 14px;
+        }
+        
+        .post-actions i {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .post-actions i:hover {
+            color: var(--color-text-secondary);
+        }
+        
+        .post-details {
+            padding: 0 14px 14px;
+        }
+        
+        .post-likes {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .post-caption {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .post-caption .username {
+            font-weight: 600;
+            margin-right: 6px;
+        }
+        
+        .post-time {
+            font-size: 12px;
+            color: var(--color-text-tertiary);
+            text-transform: uppercase;
         }
     </style>
 </head>
 <body>
     <div class="app-layout">
         
-        <!-- Left Sidebar -->
         <aside class="desktop-sidebar">
             <div class="sidebar-header">
                 <a href="home.php" class="sidebar-brand">
@@ -352,6 +143,10 @@ $username = $_SESSION['username'] ?? 'User';
                 <a href="search.php" class="sidebar-link">
                     <i data-lucide="search"></i>
                     <span>Search</span>
+                </a>
+                <a href="reels.php" class="sidebar-link">
+                    <i data-lucide="play-circle"></i>
+                    <span>Reels</span>
                 </a>
                 <a href="upload.php" class="sidebar-link">
                     <i data-lucide="plus-square"></i>
@@ -381,24 +176,42 @@ $username = $_SESSION['username'] ?? 'User';
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="main-content-inner">
-
-            <!-- Categories -->
-            <div class="category-pills-container" id="categoryPills">
-                <div class="category-pill active" data-category="all">All</div>
-                <!-- Populated via JS -->
-            </div>
-
-            <!-- Video Carousel 2D -->
-            <div class="video-carousel-container">
-                <div class="swiper swiper-horizontal-root" id="outerSwiper">
-                    <div class="swiper-wrapper" id="videoCarouselWrapper">
-                        <!-- Categories and inner vertical swipers populated via JS -->
+            <div class="feed-container">
+                <?php foreach($feedVideos as $video): 
+                    $vAvatar = $video['avatar_url'] ? (strpos($video['avatar_url'], 'http') === 0 ? $video['avatar_url'] : '../' . $video['avatar_url']) : 'https://i.pravatar.cc/150?img=11';
+                ?>
+                <div class="post-card">
+                    <div class="post-header">
+                        <img src="<?= htmlspecialchars($vAvatar) ?>" alt="Avatar">
+                        <a href="profile.php?id=<?= $video['user_id'] ?>" class="username"><?= htmlspecialchars($video['username']) ?></a>
+                    </div>
+                    
+                    <div class="post-media">
+                        <video class="post-video" src="../<?= htmlspecialchars($video['file_path']) ?>" loop playsinline preload="metadata" onclick="this.paused ? this.play() : this.pause()"></video>
+                    </div>
+                    
+                    <div class="post-actions">
+                        <i data-lucide="heart" onclick="toggleLike(<?= $video['id'] ?>, this)"></i>
+                        <i data-lucide="message-circle" onclick="addComment(<?= $video['id'] ?>, this)"></i>
+                        <i data-lucide="send"></i>
+                        <i data-lucide="bookmark" style="margin-left: auto;" onclick="toggleSave(<?= $video['id'] ?>, this)"></i>
+                    </div>
+                    
+                    <div class="post-details">
+                        <div class="post-likes"><?= $video['views'] ?> views</div>
+                        <div class="post-caption">
+                            <span class="username"><?= htmlspecialchars($video['username']) ?></span>
+                            <?= htmlspecialchars($video['description']) ?>
+                        </div>
+                        <div class="post-time"><?= date('F j, Y', strtotime($video['created_at'])) ?></div>
                     </div>
                 </div>
+                <?php endforeach; ?>
+                
+                <?php if(empty($feedVideos)): ?>
+                    <div style="text-align:center; padding: 40px; color: var(--color-text-secondary);">No posts yet. Start following people or creating!</div>
+                <?php endif; ?>
             </div>
-
-            </div> <!-- /main-content-inner -->
         </main>
     </div>
 
@@ -419,17 +232,13 @@ $username = $_SESSION['username'] ?? 'User';
             <button class="btn-post-comment" id="postCommentBtn" disabled>Post</button>
         </div>
     </div>
-
-    <!-- Swiper JS -->
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     
-    <!-- Pass PHP data to JS -->
     <script>
         window.currentUserId = <?= json_encode($_SESSION['user_id']) ?>;
     </script>
-
-    <!-- Main JS logic for Dashboard -->
-    <script src="../assets/js/feed.js"></script>
+    <script src="../assets/js/home_feed.js"></script>
+    <!-- Use main functions for likes/comments/saves -->
+    <script src="../assets/js/main.js"></script> 
     
     <script>
         lucide.createIcons();

@@ -17,8 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if ($action === 'login') {
-        $stmt = $pdo->prepare("SELECT id, username, password_hash as password, avatar_url as avatar FROM users WHERE email = ?");
-        $stmt->execute([$email]);
+        $login_username = $_POST['username'] ?? '';
+        $stmt = $pdo->prepare("SELECT id, username, password_hash as password, avatar_url as avatar FROM users WHERE username = ?");
+        $stmt->execute([$login_username]);
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {
@@ -28,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: home.php");
             exit;
         } else {
-            $error = "Invalid email or password.";
+            $error = "Invalid username or password.";
         }
     } elseif ($action === 'signup') {
         $username = $_POST['username'] ?? '';
@@ -37,7 +38,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
             $stmt->execute([$username, $email, $hash]);
-            $success = "Account created! You can now login.";
+            
+            // Auto login after signup
+            $newUserId = $pdo->lastInsertId();
+            $_SESSION['user_id'] = $newUserId;
+            $_SESSION['username'] = $username;
+            $_SESSION['avatar'] = 'https://i.pravatar.cc/150?img=11'; // Default
+            
+            header("Location: home.php");
+            exit;
+            
         } catch (\PDOException $e) {
             if ($e->getCode() == 23000) {
                 $error = "Username or email already exists.";
@@ -124,8 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" id="login-form" class="auth-form active">
                 <input type="hidden" name="action" value="login">
                 <div class="input-group">
-                    <label class="input-label">Email</label>
-                    <input type="email" name="email" class="input-field" required>
+                    <label class="input-label">Username</label>
+                    <input type="text" name="username" class="input-field" required>
                 </div>
                 <div class="input-group">
                     <label class="input-label">Password</label>
