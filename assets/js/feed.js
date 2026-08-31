@@ -1,6 +1,6 @@
 let globalFeed = [];
-let videoCarouselSwiper = null;
-let currentCategoryFilter = 'all';
+let outerSwiper = null;
+let innerSwipers = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchFeedData();
@@ -13,8 +13,7 @@ async function fetchFeedData() {
         
         if (data.success) {
             globalFeed = data.feed;
-            renderCategoryPills(globalFeed);
-            renderVideos(globalFeed);
+            render2DCarousel(globalFeed);
         } else {
             console.error('Failed to load feed:', data.message);
         }
@@ -23,122 +22,241 @@ async function fetchFeedData() {
     }
 }
 
-function renderCategoryPills(feed) {
-    const container = document.getElementById('categoryPills');
-    // Keep 'All'
-    
-    feed.forEach(cat => {
-        const pill = document.createElement('div');
-        pill.className = 'category-pill';
-        pill.textContent = cat.category_name;
-        pill.dataset.categoryId = cat.category_id;
-        pill.addEventListener('click', () => {
-            document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-            pill.classList.add('active');
-            filterVideos(cat.category_id);
-        });
-        container.appendChild(pill);
-    });
-
-    // Handle 'All' click
-    const allPill = container.querySelector('[data-category="all"]');
-    allPill.addEventListener('click', () => {
-        document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-        allPill.classList.add('active');
-        filterVideos('all');
-    });
-}
-
-function filterVideos(categoryId) {
-    renderVideos(globalFeed, categoryId);
-}
-
-function renderVideos(feed, filterCategoryId = 'all') {
+function render2DCarousel(feed) {
     const wrapper = document.getElementById('videoCarouselWrapper');
-    wrapper.innerHTML = ''; // Clear existing
+    wrapper.innerHTML = ''; 
     
-    let allVideos = [];
+    renderCategoryPills(feed);
     
-    feed.forEach(category => {
-        if (filterCategoryId === 'all' || category.category_id == filterCategoryId) {
+    feed.forEach((category, catIndex) => {
+        // Outer Horizontal Slide for Category
+        const catSlide = document.createElement('div');
+        catSlide.className = 'swiper-slide';
+        
+        // Inner Vertical Swiper for Videos
+        const innerContainer = document.createElement('div');
+        innerContainer.className = `swiper swiper-vertical-category swiper-inner-${catIndex}`;
+        
+        const innerWrapper = document.createElement('div');
+        innerWrapper.className = 'swiper-wrapper';
+        
+        if (category.videos.length === 0) {
+            innerWrapper.innerHTML = `<div class="swiper-slide" style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-secondary);font-weight:500;">No videos in ${category.category_name}</div>`;
+        } else {
             category.videos.forEach(video => {
-                video.category_name = category.category_name;
-                allVideos.push(video);
+                const vidSlide = document.createElement('div');
+                vidSlide.className = 'swiper-slide';
+                
+                const avatarUrl = video.avatar_url ? (video.avatar_url.startsWith('http') ? video.avatar_url : '../' + video.avatar_url) : 'https://i.pravatar.cc/150?img=11';
+                
+                vidSlide.innerHTML = `
+                    <div class="video-card">
+                        <video class="video-thumbnail" src="../${video.file_path}" loop playsinline preload="metadata" onclick="this.paused ? this.play() : this.pause()"></video>
+                        <div class="card-top-left">${category.category_name}</div>
+                        <div class="card-top-right"><i data-lucide="more-vertical"></i></div>
+                        
+                        <div class="card-actions-right">
+                            <div class="card-action" onclick="toggleLike(${video.id}, this)">
+                                <i data-lucide="heart" ${video.is_liked ? 'fill="white" class="active"' : ''}></i>
+                                <span>${video.like_count > 1000 ? (video.like_count/1000).toFixed(1)+'K' : video.like_count}</span>
+                            </div>
+                            <div class="card-action" onclick="addComment(${video.id}, this)">
+                                <i data-lucide="message-circle"></i>
+                                <span>${video.comment_count}</span>
+                            </div>
+                            <div class="card-action" onclick="shareVideo('${video.file_path}')">
+                                <i data-lucide="send"></i>
+                                <span>Share</span>
+                            </div>
+                            <div class="card-action" onclick="toggleSave(${video.id}, this)">
+                                <i data-lucide="bookmark" ${video.is_saved ? 'fill="white" class="active"' : ''}></i>
+                            </div>
+                        </div>
+                        
+                        <div class="card-bottom-info">
+                            <div class="card-user">
+                                <img src="${avatarUrl}" alt="${video.username}">
+                                <span>${video.username}</span>
+                            </div>
+                            <div class="card-caption">${video.description}</div>
+                            <div class="card-tags">${video.hashtags ? video.hashtags : '#trending'}</div>
+                        </div>
+                    </div>
+                `;
+                innerWrapper.appendChild(vidSlide);
             });
         }
-    });
-
-    allVideos.forEach(video => {
-        const slide = document.createElement('div');
-        slide.className = 'swiper-slide';
-        slide.style.width = '240px';
-        slide.style.marginRight = '20px';
         
-        const avatarUrl = video.avatar_url ? (video.avatar_url.startsWith('http') ? video.avatar_url : '../' + video.avatar_url) : 'https://i.pravatar.cc/150?img=11';
-
-        // Assuming thumbnails exist, or we can use video tag. Since the screenshot shows images/thumbnails, let's use the video tag but paused, or an image. 
-        // We will use video tag and set it to loop and muted on hover.
-        slide.innerHTML = `
-            <div class="video-card">
-                <video class="video-thumbnail" src="../${video.file_path}" loop muted playsinline poster=""></video>
-                <div class="card-top-left">${video.category_name}</div>
-                <div class="card-top-right"><i data-lucide="more-vertical"></i></div>
-                
-                <div class="card-actions-right">
-                    <div class="card-action">
-                        <i data-lucide="heart" ${video.is_liked ? 'fill="white"' : ''}></i>
-                        <span>${video.likes_count > 1000 ? (video.likes_count/1000).toFixed(1)+'K' : video.likes_count}</span>
-                    </div>
-                    <div class="card-action">
-                        <i data-lucide="message-circle"></i>
-                        <span>${video.comments_count}</span>
-                    </div>
-                    <div class="card-action">
-                        <i data-lucide="send"></i>
-                        <span>Share</span>
-                    </div>
-                    <div class="card-action">
-                        <i data-lucide="bookmark" ${video.is_saved ? 'fill="white"' : ''}></i>
-                    </div>
-                </div>
-                
-                <div class="card-bottom-info">
-                    <div class="card-user">
-                        <img src="${avatarUrl}" alt="${video.username}">
-                        <span>${video.username}</span>
-                    </div>
-                    <div class="card-caption">${video.caption}</div>
-                    <div class="card-tags">${video.hashtags ? video.hashtags : '#trending'}</div>
-                </div>
-            </div>
-        `;
-
-        // Hover to play
-        const vidEl = slide.querySelector('video');
-        slide.addEventListener('mouseenter', () => {
-            vidEl.play().catch(e => console.log('Autoplay blocked'));
-        });
-        slide.addEventListener('mouseleave', () => {
-            vidEl.pause();
-        });
-
-        wrapper.appendChild(slide);
+        innerContainer.appendChild(innerWrapper);
+        catSlide.appendChild(innerContainer);
+        wrapper.appendChild(catSlide);
     });
 
     lucide.createIcons();
-    initCarousel();
+    init2DSwipers(feed);
 }
 
-function initCarousel() {
-    if (videoCarouselSwiper) {
-        videoCarouselSwiper.destroy(true, true);
-    }
-    videoCarouselSwiper = new Swiper('.swiper-videos', {
-        slidesPerView: 'auto',
-        spaceBetween: 20,
-        freeMode: true,
-        mousewheel: {
-            forceToAxis: true,
-        },
+function init2DSwipers(feed) {
+    innerSwipers = [];
+    
+    feed.forEach((category, index) => {
+        const swiper = new Swiper(`.swiper-inner-${index}`, {
+            direction: 'vertical',
+            nested: true,
+            resistanceRatio: 0,
+            on: {
+                slideChangeTransitionEnd: function() {
+                    handlePlayback();
+                }
+            }
+        });
+        innerSwipers.push(swiper);
     });
+    
+    outerSwiper = new Swiper('#outerSwiper', {
+        direction: 'horizontal',
+        resistanceRatio: 0,
+        on: {
+            slideChangeTransitionEnd: function() {
+                syncCategoryPills(this.activeIndex);
+                handlePlayback();
+            }
+        }
+    });
+    
+    handlePlayback();
+}
+
+function handlePlayback() {
+    document.querySelectorAll('.video-thumbnail').forEach(v => {
+        v.pause();
+    });
+    
+    if (!outerSwiper) return;
+    const activeOuterIndex = outerSwiper.activeIndex;
+    const activeInnerSwiper = innerSwipers[activeOuterIndex];
+    
+    if (activeInnerSwiper) {
+        const activeInnerIndex = activeInnerSwiper.activeIndex;
+        const innerSlide = activeInnerSwiper.slides[activeInnerIndex];
+        if (innerSlide) {
+            const video = innerSlide.querySelector('video');
+            if (video) {
+                video.play().catch(e => console.log('Autoplay blocked.', e));
+            }
+        }
+    }
+}
+
+function renderCategoryPills(feed) {
+    const container = document.getElementById('categoryPills');
+    container.innerHTML = '';
+    
+    feed.forEach((cat, index) => {
+        const pill = document.createElement('div');
+        pill.className = 'category-pill';
+        if (index === 0) pill.classList.add('active');
+        pill.textContent = cat.category_name;
+        
+        pill.addEventListener('click', () => {
+            outerSwiper.slideTo(index);
+        });
+        
+        container.appendChild(pill);
+    });
+}
+
+function syncCategoryPills(activeIndex) {
+    const pills = document.querySelectorAll('.category-pill');
+    pills.forEach((p, index) => {
+        if (index === activeIndex) {
+            p.classList.add('active');
+            p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } else {
+            p.classList.remove('active');
+        }
+    });
+}
+
+// Interaction Handlers
+
+async function toggleLike(videoId, btnEl) {
+    try {
+        const formData = new FormData();
+        formData.append('action', 'toggle_like');
+        formData.append('video_id', videoId);
+        
+        const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+        const data = await res.json();
+        
+        if (data.success) {
+            const icon = btnEl.querySelector('i');
+            const span = btnEl.querySelector('span');
+            
+            if (data.status === 'liked') {
+                icon.setAttribute('fill', 'white');
+                icon.classList.add('active');
+            } else {
+                icon.removeAttribute('fill');
+                icon.classList.remove('active');
+            }
+            span.textContent = data.new_count > 1000 ? (data.new_count/1000).toFixed(1)+'K' : data.new_count;
+        }
+    } catch(e) { console.error('Like failed', e); }
+}
+
+async function toggleSave(videoId, btnEl) {
+    try {
+        const formData = new FormData();
+        formData.append('action', 'toggle_save');
+        formData.append('video_id', videoId);
+        
+        const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+        const data = await res.json();
+        
+        if (data.success) {
+            const icon = btnEl.querySelector('i');
+            if (data.status === 'saved') {
+                icon.setAttribute('fill', 'white');
+                icon.classList.add('active');
+            } else {
+                icon.removeAttribute('fill');
+                icon.classList.remove('active');
+            }
+        }
+    } catch(e) { console.error('Save failed', e); }
+}
+
+async function addComment(videoId, btnEl) {
+    const comment = prompt("Add a comment:");
+    if (!comment || comment.trim() === '') return;
+    
+    try {
+        const formData = new FormData();
+        formData.append('action', 'add_comment');
+        formData.append('video_id', videoId);
+        formData.append('content', comment.trim());
+        
+        const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+        const data = await res.json();
+        
+        if (data.success) {
+            const span = btnEl.querySelector('span');
+            let count = parseInt(span.textContent) || 0;
+            span.textContent = count + 1;
+            alert("Comment added!");
+        }
+    } catch(e) { console.error('Comment failed', e); }
+}
+
+function shareVideo(filePath) {
+    const url = window.location.origin + window.location.pathname.replace('home.php', filePath);
+    if (navigator.share) {
+        navigator.share({
+            title: 'Check out this video on Swipe Nest',
+            url: url
+        }).catch(console.error);
+    } else {
+        prompt("Copy this link to share:", url);
+    }
 }

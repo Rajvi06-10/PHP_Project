@@ -1,5 +1,11 @@
 <?php
 session_start();
+
+if (isset($_SESSION['user_id'])) {
+    header("Location: home.php");
+    exit;
+}
+
 require_once '../config/db.php';
 
 $error = '';
@@ -47,11 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auth - ZYVA</title>
-    <link rel="stylesheet" href="../assets/css/variables.css">
+    <title>Auth - Swipe Nest</title>
+    <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css">
-    <link rel="stylesheet" href="../assets/css/globals.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/globals.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../assets/css/components.css?v=<?= time() ?>">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .auth-container {
@@ -93,12 +99,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="auth-container">
         <div class="auth-card">
-            <div class="text-center mb-6">
-                <a href="../index.php" class="inline-flex items-center gap-2 mb-4">
-                    <i data-lucide="zap" class="text-accent"></i>
-                    <span class="font-bold text-xl">ZYVA</span>
-                </a>
-                <h2 class="h4">Welcome Back</h2>
+            <div class="text-center mb-8" style="display:flex; flex-direction:column; align-items:center; gap:var(--spacing-3);">
+                <img src="../assets/images/logo.svg" alt="Swipe Nest Logo" style="width: 48px; height: 48px;">
+                <h1 style="font-family: var(--font-family-heading); font-size: 2rem; font-weight: 700; margin: 0; letter-spacing: -0.02em;">Swipe Nest</h1>
+                <p style="color: var(--color-text-secondary); font-size: var(--text-sm); max-width: 280px; margin: 0;">Your personalized content home. Swipe to explore.</p>
             </div>
             
             <?php if ($error): ?>

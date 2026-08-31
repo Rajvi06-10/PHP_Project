@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZYVA - Discover the Next Big Thing</title>
+    <title>Swipe Nest - Discover the Next Big Thing</title>
     
     <!-- Design System CSS -->
-    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="assets/css/reset.css">
-    <link rel="stylesheet" href="assets/css/globals.css">
-    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/globals.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="assets/css/components.css?v=<?= time() ?>">
     <link rel="stylesheet" href="assets/css/layout.css">
     
     <!-- Lucide Icons -->
@@ -131,9 +131,9 @@
     <nav class="landing-navbar">
         <div class="container">
             <div class="flex items-center justify-between w-full">
-                <a href="index.php" class="navbar-brand">
-                    <i data-lucide="zap" class="text-accent"></i>
-                    <span>ZYVA</span>
+                <a href="index.php" class="navbar-brand" style="gap: var(--spacing-2);">
+                    <img src="assets/images/logo.svg" alt="Swipe Nest Logo" style="width: 28px; height: 28px;">
+                    <span style="font-family: var(--font-family-heading); font-weight: 700; letter-spacing: -0.02em;">Swipe Nest</span>
                 </a>
                 <div class="flex items-center gap-6">
                     <a href="pages/search.php" class="text-secondary hover:text-primary transition-fast">Explore</a>

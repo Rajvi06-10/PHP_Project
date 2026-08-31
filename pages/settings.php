@@ -2,6 +2,9 @@
 session_start();
 require_once '../config/db.php';
 
+$sessionUsername = $_SESSION['username'] ?? 'User';
+$sessionAvatar = $_SESSION['avatar'] ?? 'https://i.pravatar.cc/150?img=11';
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth.php");
     exit;
@@ -77,12 +80,12 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - ZYVA</title>
+    <title>Settings - Swipe Nest</title>
     
-    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css">
-    <link rel="stylesheet" href="../assets/css/globals.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/globals.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../assets/css/components.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/layout.css">
     
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -230,23 +233,53 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
 </head>
 <body>
     <div class="app-layout">
-        <!-- Top Navbar -->
-        <nav class="top-navbar">
-            <div class="container">
-                <a href="../index.php" class="navbar-brand">
-                    <i data-lucide="zap" class="text-accent"></i>
-                    <span>ZYVA</span>
+        <!-- Left Sidebar -->
+        <aside class="desktop-sidebar">
+            <div class="sidebar-header">
+                <a href="home.php" class="sidebar-brand">
+                    <img src="../assets/images/logo.svg" alt="Swipe Nest Logo" style="width: 28px; height: 28px;">
+                    <span style="font-family: var(--font-family-heading); font-weight: 700; letter-spacing: -0.02em;">Swipe Nest</span>
                 </a>
-                
-                <div class="navbar-actions">
-                    <a href="profile.php">
-                        <img src="<?= htmlspecialchars($avatarSrc) ?>" alt="Profile" class="avatar">
-                    </a>
-                </div>
             </div>
-        </nav>
+            
+            <nav class="sidebar-nav">
+                <a href="home.php" class="sidebar-link">
+                    <i data-lucide="home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="search.php" class="sidebar-link">
+                    <i data-lucide="search"></i>
+                    <span>Search</span>
+                </a>
+                <a href="upload.php" class="sidebar-link">
+                    <i data-lucide="plus-square"></i>
+                    <span>Create</span>
+                </a>
+                <a href="profile.php" class="sidebar-link">
+                    <i data-lucide="user"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="settings.php" class="sidebar-link active">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="profile.php" class="sidebar-user">
+                    <img src="<?= htmlspecialchars($sessionAvatar) ?>" alt="Profile">
+                    <span><?= htmlspecialchars($sessionUsername) ?></span>
+                </a>
+                <a href="logout.php" class="sidebar-link" style="color: var(--color-danger); margin-top: 8px;">
+                    <i data-lucide="log-out"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
 
-        <div class="settings-layout w-full">
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="main-content-inner" style="max-width: 1000px; display: flex; flex-direction: column;">
             
             <!-- Settings Navigation -->
             <aside class="settings-nav">
@@ -301,7 +334,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                             <div class="input-group">
                                 <label class="input-label">Username</label>
                                 <input type="text" name="username" class="input-field" value="<?= htmlspecialchars($user['username']) ?>" required>
-                                <p class="text-xs text-tertiary mt-1">www.zyva.com/@<?= htmlspecialchars($user['username']) ?></p>
+                                <p class="text-xs text-tertiary mt-1">www.swipenest.com/@<?= htmlspecialchars($user['username']) ?></p>
                             </div>
 
                             <div class="input-group">
@@ -336,7 +369,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                 <div id="section-appearance" class="settings-panel" style="display: none;">
                     <section class="settings-section">
                         <h2 class="settings-section-title">Appearance</h2>
-                        <p class="settings-section-desc">Customize how ZYVA looks on your device.</p>
+                        <p class="settings-section-desc">Customize how Swipe Nest looks on your device.</p>
 
                         <div class="setting-row">
                             <div>
@@ -434,8 +467,8 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                     });
                 </script>
 
-            </main>
-        </div>
+            </div> <!-- /main-content-inner -->
+        </main>
     </div>
 </body>
 </html>

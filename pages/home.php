@@ -15,7 +15,7 @@ $username = $_SESSION['username'] ?? 'User';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zyva - Home</title>
+    <title>Swipe Nest - Home</title>
     
     <!-- Design System CSS -->
     <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
@@ -96,44 +96,44 @@ $username = $_SESSION['username'] ?? 'User';
             flex-shrink: 0;
         }
 
-        /* Video Carousel */
+        /* Video Carousel - 2D Navigation */
         .video-carousel-container {
             margin-bottom: var(--spacing-10);
             position: relative;
+            height: calc(100vh - 200px);
+            max-height: 750px;
+            width: 100%;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         }
         
-        .swiper-videos {
+        .swiper-horizontal-root {
             width: 100%;
-            padding: 10px 0;
+            height: 100%;
+        }
+
+        .swiper-vertical-category {
+            width: 100%;
+            height: 100%;
         }
         
         .video-card {
-            width: 240px;
-            height: 420px;
-            border-radius: 16px;
+            width: 100%;
+            height: 100%;
             background-color: #000;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            transition: transform 0.2s;
-            cursor: pointer;
-        }
-        
-        .video-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
         }
         
         .video-thumbnail {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-        
-        .video-card:hover .video-thumbnail {
-            opacity: 1;
         }
         
         .card-top-left {
@@ -338,60 +338,49 @@ $username = $_SESSION['username'] ?? 'User';
         <aside class="desktop-sidebar">
             <div class="sidebar-header">
                 <a href="home.php" class="sidebar-brand">
-                    <i data-lucide="play-square" fill="currentColor"></i> zyva
+                    <img src="../assets/images/logo.svg" alt="Swipe Nest Logo" style="width: 28px; height: 28px;">
+                    <span style="font-family: var(--font-family-heading); font-weight: 700; letter-spacing: -0.02em;">Swipe Nest</span>
                 </a>
             </div>
             
             <nav class="sidebar-nav">
-                <a href="home.php" class="sidebar-link active"><i data-lucide="home"></i> Home</a>
-                <a href="explore.php" class="sidebar-link"><i data-lucide="search"></i> Explore</a>
-                <a href="#" class="sidebar-link"><i data-lucide="layout-grid"></i> Categories</a>
-                <a href="#" class="sidebar-link"><i data-lucide="bookmark"></i> Saved</a>
-                <a href="#" class="sidebar-link"><i data-lucide="users"></i> Following</a>
-                <a href="#" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a>
-                <a href="#" class="sidebar-link"><i data-lucide="bell"></i> Notifications</a>
-                <a href="profile.php" class="sidebar-link"><i data-lucide="user"></i> Profile</a>
-                <a href="settings.php" class="sidebar-link"><i data-lucide="settings"></i> Settings</a>
+                <a href="home.php" class="sidebar-link active">
+                    <i data-lucide="home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="search.php" class="sidebar-link">
+                    <i data-lucide="search"></i>
+                    <span>Search</span>
+                </a>
+                <a href="upload.php" class="sidebar-link">
+                    <i data-lucide="plus-square"></i>
+                    <span>Create</span>
+                </a>
+                <a href="profile.php" class="sidebar-link">
+                    <i data-lucide="user"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="settings.php" class="sidebar-link">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
             </nav>
             
-            <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 15px;">
-                <a href="upload.php" class="btn-primary w-full">
-                    <i data-lucide="plus"></i> Create Reel
+            <div class="sidebar-footer">
+                <a href="profile.php" class="sidebar-user">
+                    <img src="<?= htmlspecialchars($avatarSrc) ?>" alt="Profile">
+                    <span><?= htmlspecialchars($username) ?></span>
                 </a>
-                <a href="../index.php" class="sidebar-link" style="padding: 0; color: var(--color-text-secondary);"><i data-lucide="log-out"></i> Logout</a>
+                <a href="logout.php" class="sidebar-link" style="color: var(--color-danger); margin-top: 8px;">
+                    <i data-lucide="log-out"></i>
+                    <span>Logout</span>
+                </a>
             </div>
         </aside>
 
-        <!-- Top Navbar -->
-        <header class="desktop-navbar">
-            <div class="navbar-search">
-                <div class="search-input-wrapper">
-                    <i data-lucide="search"></i>
-                    <input type="text" class="search-input" placeholder="Search reels, users, hashtags...">
-                </div>
-            </div>
-            
-            <div class="navbar-actions">
-                <i data-lucide="home" class="action-icon" style="color: var(--color-primary);"></i>
-                <i data-lucide="plus-square" class="action-icon"></i>
-                <i data-lucide="message-circle" class="action-icon"></i>
-                <i data-lucide="bell" class="action-icon"></i>
-                
-                <div class="user-profile-menu">
-                    <img src="<?= htmlspecialchars($avatarSrc) ?>" alt="Profile" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
-                    <span><?= htmlspecialchars($username) ?></span>
-                    <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
-                </div>
-            </div>
-        </header>
-
         <!-- Main Content -->
         <main class="main-content">
-            
-            <div class="welcome-header">
-                <h1>Home</h1>
-                <p>Welcome back, <?= htmlspecialchars($username) ?>! 👋</p>
-            </div>
+            <div class="main-content-inner">
 
             <!-- Categories -->
             <div class="category-pills-container" id="categoryPills">
@@ -399,77 +388,16 @@ $username = $_SESSION['username'] ?? 'User';
                 <!-- Populated via JS -->
             </div>
 
-            <!-- Video Carousel -->
+            <!-- Video Carousel 2D -->
             <div class="video-carousel-container">
-                <div class="swiper swiper-videos">
+                <div class="swiper swiper-horizontal-root" id="outerSwiper">
                     <div class="swiper-wrapper" id="videoCarouselWrapper">
-                        <!-- Populated via JS -->
+                        <!-- Categories and inner vertical swipers populated via JS -->
                     </div>
-                </div>
-                <!-- We can add swiper navigation buttons here if needed -->
-            </div>
-
-            <!-- Suggestions -->
-            <h3 class="section-title">Suggested for you</h3>
-            <div class="suggestions-grid">
-                <div class="suggestion-card">
-                    <div class="suggestion-info">
-                        <img src="https://i.pravatar.cc/150?img=1" alt="User">
-                        <div class="suggestion-details">
-                            <h4>wanderlust_03</h4>
-                            <p>Travel Enthusiast</p>
-                        </div>
-                    </div>
-                    <button class="btn-follow">Follow</button>
-                </div>
-                <div class="suggestion-card">
-                    <div class="suggestion-info">
-                        <img src="https://i.pravatar.cc/150?img=2" alt="User">
-                        <div class="suggestion-details">
-                            <h4>food_lover_22</h4>
-                            <p>Food Blogger</p>
-                        </div>
-                    </div>
-                    <button class="btn-follow">Follow</button>
-                </div>
-                <div class="suggestion-card">
-                    <div class="suggestion-info">
-                        <img src="https://i.pravatar.cc/150?img=3" alt="User">
-                        <div class="suggestion-details">
-                            <h4>fitlife_07</h4>
-                            <p>Fitness Coach</p>
-                        </div>
-                    </div>
-                    <button class="btn-follow">Follow</button>
-                </div>
-                <div class="suggestion-card">
-                    <div class="suggestion-info">
-                        <img src="https://i.pravatar.cc/150?img=4" alt="User">
-                        <div class="suggestion-details">
-                            <h4>art_world</h4>
-                            <p>Artist</p>
-                        </div>
-                    </div>
-                    <button class="btn-follow">Follow</button>
                 </div>
             </div>
 
-            <!-- Popular Hashtags -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-4);">
-                <h3 class="section-title" style="margin-bottom: 0;">Popular Hashtags</h3>
-                <a href="#" style="font-size: 13px; color: var(--color-primary); font-weight: 500; text-decoration: none;">View all</a>
-            </div>
-            <div class="hashtags-container">
-                <div class="hashtag-item">#travel</div>
-                <div class="hashtag-item">#foodie</div>
-                <div class="hashtag-item">#music</div>
-                <div class="hashtag-item">#fashion</div>
-                <div class="hashtag-item">#nature</div>
-                <div class="hashtag-item">#fitness</div>
-                <div class="hashtag-item">#art</div>
-                <div class="hashtag-item">#comedy</div>
-            </div>
-
+            </div> <!-- /main-content-inner -->
         </main>
     </div>
 

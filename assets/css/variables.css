@@ -1,23 +1,24 @@
 :root {
-    /* Light Theme Palette */
-    --color-bg-primary: #f8fafc;
-    --color-bg-sidebar: #ffffff;
-    --color-bg-navbar: #ffffff;
+    /* Light Theme Palette - Editorial Aesthetic */
+    --color-bg-primary: #F9F8F6; /* Soft warm ivory */
+    --color-bg-sidebar: #FFFFFF;
+    --color-bg-navbar: #FFFFFF;
     
-    --color-surface: #ffffff;
-    --color-surface-hover: #f1f5f9;
+    --color-surface: #FFFFFF;
+    --color-surface-hover: #F2F0EB;
     
-    --color-primary: #6a4cff; /* Purple branding */
-    --color-primary-hover: #5b3ce0;
+    --color-primary: #D87361; /* Warm terracotta */
+    --color-primary-hover: #C66251;
+    --color-accent: #89987F; /* Muted sage */
     
-    --color-text-primary: #0f172a;
-    --color-text-secondary: #475569;
-    --color-text-tertiary: #94a3b8;
+    --color-text-primary: #1A1A1A;
+    --color-text-secondary: #5A5A5A;
+    --color-text-tertiary: #8A8A8A;
     
-    --color-border: #e2e8f0;
+    --color-border: #E8E6E1;
     
-    --color-danger: #ef4444;
-    --color-success: #10b981;
+    --color-danger: #D87361; /* Matching terracotta for softer errors */
+    --color-success: #89987F; /* Matching sage for softer success */
 
     /* Spacing */
     --spacing-1: 0.25rem;
@@ -29,6 +30,9 @@
     --spacing-10: 2.5rem;
     
     /* Typography */
+    --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-family-heading: "Playfair Display", Georgia, serif; /* Editorial feel for headings */
+    
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
     --text-base: 1rem;
@@ -49,12 +53,12 @@
 }
 
 [data-theme="dark"] {
-    --color-bg-primary: #0f172a;
-    --color-bg-sidebar: #1e293b;
-    --color-bg-navbar: #1e293b;
-    --color-surface: #1e293b;
-    --color-surface-hover: #334155;
-    --color-text-primary: #f8fafc;
-    --color-text-secondary: #94a3b8;
-    --color-border: #334155;
+    --color-bg-primary: #0B0E14; /* Deep ink / navy-black */
+    --color-bg-sidebar: #12161E;
+    --color-bg-navbar: #12161E;
+    --color-surface: #12161E;
+    --color-surface-hover: #1A1F29;
+    --color-text-primary: #F9F8F6;
+    --color-text-secondary: #A0A5AD;
+    --color-border: #2A2E35;
 }

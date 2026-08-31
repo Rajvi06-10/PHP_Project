@@ -2,6 +2,9 @@
 session_start();
 require_once '../config/db.php';
 
+$username = $_SESSION['username'] ?? 'User';
+$sessionAvatar = $_SESSION['avatar'] ?? 'https://i.pravatar.cc/150?img=11';
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth.php");
     exit;
@@ -20,11 +23,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $visibility = $_POST['visibility'] ?? 'Public';
     $hashtags_input = $_POST['hashtags'] ?? '';
     
-    if (isset($_FILES['video_file']) && $_FILES['video_file']['error'] === 0) {
+    if (isset($_FILES['video_file']) && $_FILES['video_file']['error'] === UPLOAD_ERR_OK) {
         $allowed = ['video/mp4', 'video/webm'];
         if (in_array($_FILES['video_file']['type'], $allowed)) {
             $ext = pathinfo($_FILES['video_file']['name'], PATHINFO_EXTENSION);
             $filename = uniqid() . '.' . $ext;
+            
+            if (!is_dir('../uploads')) {
+                mkdir('../uploads', 0777, true);
+            }
+            
             $uploadPath = '../uploads/' . $filename;
             
             if (move_uploaded_file($_FILES['video_file']['tmp_name'], $uploadPath)) {
@@ -45,15 +53,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 
-                $message = "Video uploaded successfully!";
+                header("Location: profile.php");
+                exit;
             } else {
-                $error = "Failed to move uploaded file.";
+                $error = "Failed to move uploaded file. Check directory permissions.";
             }
         } else {
             $error = "Invalid file type. Only MP4 and WebM are allowed.";
         }
     } else {
-        $error = "Please select a valid video file.";
+        if (isset($_FILES['video_file']) && $_FILES['video_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $upload_errors = array(
+                UPLOAD_ERR_INI_SIZE => 'File is too large (exceeds upload_max_filesize in php.ini).',
+                UPLOAD_ERR_FORM_SIZE => 'File is too large.',
+                UPLOAD_ERR_PARTIAL => 'File was only partially uploaded.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder.',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+                UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload.'
+            );
+            $error = $upload_errors[$_FILES['video_file']['error']] ?? 'Unknown upload error.';
+        } else {
+            $error = "Please select a valid video file.";
+        }
     }
 }
 
@@ -67,12 +88,12 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload - ZYVA</title>
+    <title>Upload - Swipe Nest</title>
     
-    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css">
-    <link rel="stylesheet" href="../assets/css/globals.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/globals.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../assets/css/components.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/layout.css">
     
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -111,27 +132,53 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
 </head>
 <body>
     <div class="app-layout">
-        <!-- Top Navbar -->
-        <nav class="top-navbar">
-            <div class="container">
-                <a href="../index.php" class="navbar-brand">
-                    <i data-lucide="zap" class="text-accent"></i>
-                    <span>ZYVA</span>
+        <!-- Left Sidebar -->
+        <aside class="desktop-sidebar">
+            <div class="sidebar-header">
+                <a href="home.php" class="sidebar-brand">
+                    <img src="../assets/images/logo.svg" alt="Swipe Nest Logo" style="width: 28px; height: 28px;">
+                    <span style="font-family: var(--font-family-heading); font-weight: 700; letter-spacing: -0.02em;">Swipe Nest</span>
                 </a>
-                
-                <div class="navbar-actions">
-                    <button class="btn btn-icon btn-ghost" onclick="toggleTheme()">
-                        <i data-lucide="moon" class="theme-icon"></i>
-                    </button>
-                    <a href="profile.php">
-                        <img src="<?= htmlspecialchars($avatarSrc) ?>" alt="Profile" class="avatar">
-                    </a>
-                </div>
             </div>
-        </nav>
+            
+            <nav class="sidebar-nav">
+                <a href="home.php" class="sidebar-link">
+                    <i data-lucide="home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="search.php" class="sidebar-link">
+                    <i data-lucide="search"></i>
+                    <span>Search</span>
+                </a>
+                <a href="upload.php" class="sidebar-link active">
+                    <i data-lucide="plus-square"></i>
+                    <span>Create</span>
+                </a>
+                <a href="profile.php" class="sidebar-link">
+                    <i data-lucide="user"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="settings.php" class="sidebar-link">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="profile.php" class="sidebar-user">
+                    <img src="<?= htmlspecialchars($sessionAvatar) ?>" alt="Profile">
+                    <span><?= htmlspecialchars($username) ?></span>
+                </a>
+                <a href="logout.php" class="sidebar-link" style="color: var(--color-danger); margin-top: 8px;">
+                    <i data-lucide="log-out"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
 
-        <div class="main-wrapper justify-center" style="padding: var(--spacing-10) 0;">
-            <main class="w-full" style="max-width: 900px; padding: 0 var(--spacing-6);">
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="main-content-inner" style="max-width: 900px; padding-top: var(--spacing-6);">
                 
                 <h1 class="h3 mb-2">Upload Video</h1>
                 <p class="text-secondary mb-8">Post a video to your account</p>
@@ -199,8 +246,8 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
 
                     </form>
                 </div>
-            </main>
-        </div>
+            </div> <!-- /main-content-inner -->
+        </main>
     </div>
     
     <script>
