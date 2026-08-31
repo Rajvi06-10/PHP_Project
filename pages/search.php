@@ -15,6 +15,11 @@ if ($user_id) {
     $followed_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
+$creators = [];
+$videos = [];
+$found_categories = [];
+$found_hashtags = [];
+
 if (!empty($searchQuery)) {
     $searchParam = '%' . $searchQuery . '%';
     
@@ -23,8 +28,18 @@ if (!empty($searchQuery)) {
     $creatorsStmt->execute([$searchParam, $searchParam]);
     $creators = $creatorsStmt->fetchAll();
 
-    // Search videos
-    $videosStmt = $pdo->prepare("SELECT v.*, u.username FROM videos v JOIN users u ON v.user_id = u.id WHERE v.title LIKE ? OR v.description LIKE ? OR u.username LIKE ? ORDER BY v.created_at DESC LIMIT 20");
+    // Search categories
+    $catStmt = $pdo->prepare("SELECT id, name FROM categories WHERE name LIKE ? ORDER BY id ASC LIMIT 5");
+    $catStmt->execute([$searchParam]);
+    $found_categories = $catStmt->fetchAll();
+
+    // Search hashtags
+    $tagStmt = $pdo->prepare("SELECT DISTINCT tag FROM hashtags WHERE tag LIKE ? LIMIT 10");
+    $tagStmt->execute([$searchParam]);
+    $found_hashtags = $tagStmt->fetchAll();
+
+    // Search videos (by description, user, or category)
+    $videosStmt = $pdo->prepare("SELECT v.*, u.username FROM videos v JOIN users u ON v.user_id = u.id LEFT JOIN categories c ON v.category_id = c.id WHERE v.description LIKE ? OR u.username LIKE ? OR c.name LIKE ? ORDER BY v.created_at DESC LIMIT 20");
     $videosStmt->execute([$searchParam, $searchParam, $searchParam]);
     $videos = $videosStmt->fetchAll();
 } else {
@@ -189,9 +204,38 @@ if (!empty($searchQuery)) {
                             <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
+                        <?php if(empty($creators)): ?>
+                            <div style="padding: 20px; text-align: center; color: var(--color-text-secondary);">No creators found.</div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <?php if (!empty($searchQuery)): ?>
+                    <h3 class="h4 mb-4 mt-8">Categories</h3>
+                    <div class="flex flex-wrap gap-2 mb-8">
+                        <?php foreach($found_categories as $cat): ?>
+                            <a href="home.php" class="btn btn-secondary" style="border-radius: 20px;">
+                                <?= htmlspecialchars($cat['name']) ?>
+                            </a>
+                        <?php endforeach; ?>
+                        <?php if(empty($found_categories)): ?>
+                            <div style="color: var(--color-text-secondary);">No categories found.</div>
+                        <?php endif; ?>
                     </div>
 
-                    <h3 class="h4 mb-4">
+                    <h3 class="h4 mb-4 mt-8">Hashtags</h3>
+                    <div class="flex flex-wrap gap-2 mb-8">
+                        <?php foreach($found_hashtags as $tag): ?>
+                            <a href="search.php?q=<?= urlencode($tag['tag']) ?>" class="btn btn-secondary" style="border-radius: 20px;">
+                                #<?= htmlspecialchars($tag['tag']) ?>
+                            </a>
+                        <?php endforeach; ?>
+                        <?php if(empty($found_hashtags)): ?>
+                            <div style="color: var(--color-text-secondary);">No hashtags found.</div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <h3 class="h4 mb-4 mt-8">
                         <?= !empty($searchQuery) ? 'Video Results' : 'Trending Videos' ?>
                     </h3>
                     <div class="grid-videos">

@@ -29,15 +29,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ext = pathinfo($_FILES['video_file']['name'], PATHINFO_EXTENSION);
             $filename = uniqid() . '.' . $ext;
             
-            if (!is_dir('../uploads')) {
-                mkdir('../uploads', 0777, true);
+            if (!is_dir('../uploads/videos')) {
+                mkdir('../uploads/videos', 0777, true);
             }
             
-            $uploadPath = '../uploads/' . $filename;
+            $uploadPath = '../uploads/videos/' . $filename;
             
             if (move_uploaded_file($_FILES['video_file']['tmp_name'], $uploadPath)) {
                 $stmt = $pdo->prepare("INSERT INTO videos (user_id, category_id, file_path, description, visibility) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$_SESSION['user_id'], $category_id, 'uploads/' . $filename, $caption, $visibility]);
+                $stmt->execute([$_SESSION['user_id'], $category_id, 'uploads/videos/' . $filename, $caption, $visibility]);
                 
                 $video_id = $pdo->lastInsertId();
                 
