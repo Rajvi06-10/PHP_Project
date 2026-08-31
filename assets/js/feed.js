@@ -99,13 +99,23 @@ function render2DCarousel(feed) {
 function init2DSwipers(feed) {
     innerSwipers = [];
     
+    const uId = window.currentUserId || 'guest';
+    const outerKey = `swipeNest_user_${uId}_outer_category`;
+    const savedOuterIndex = sessionStorage.getItem(outerKey) ? parseInt(sessionStorage.getItem(outerKey)) : 0;
+    
     feed.forEach((category, index) => {
+        const catId = category.category_id || index; // fallback to index if missing
+        const stateKey = `swipeNest_user_${uId}_category_${catId}`;
+        const savedInnerIndex = sessionStorage.getItem(stateKey) ? parseInt(sessionStorage.getItem(stateKey)) : 0;
+        
         const swiper = new Swiper(`.swiper-inner-${index}`, {
             direction: 'vertical',
             nested: true,
             resistanceRatio: 0,
+            initialSlide: savedInnerIndex,
             on: {
                 slideChangeTransitionEnd: function() {
+                    sessionStorage.setItem(stateKey, this.activeIndex);
                     handlePlayback();
                 }
             }
@@ -116,14 +126,19 @@ function init2DSwipers(feed) {
     outerSwiper = new Swiper('#outerSwiper', {
         direction: 'horizontal',
         resistanceRatio: 0,
+        initialSlide: Math.min(savedOuterIndex, feed.length - 1 < 0 ? 0 : feed.length - 1),
         on: {
             slideChangeTransitionEnd: function() {
+                sessionStorage.setItem(outerKey, this.activeIndex);
                 syncCategoryPills(this.activeIndex);
                 handlePlayback();
             }
         }
     });
     
+    if (outerSwiper) {
+        syncCategoryPills(outerSwiper.activeIndex);
+    }
     handlePlayback();
 }
 

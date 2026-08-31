@@ -423,6 +423,11 @@ $username = $_SESSION['username'] ?? 'User';
     <!-- Swiper JS -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     
+    <!-- Pass PHP data to JS -->
+    <script>
+        window.currentUserId = <?= json_encode($_SESSION['user_id']) ?>;
+    </script>
+
     <!-- Main JS logic for Dashboard -->
     <script src="../assets/js/feed.js"></script>
     
