@@ -146,16 +146,20 @@ window.toggleLike = async (videoId, btnEl) => {
         const data = await (await fetch('../api/action.php', { method: 'POST', body: fd })).json();
         if (data.success) {
             document.querySelectorAll(`.like-btn-${videoId}`).forEach(btn => {
-                const icon = btn.tagName.toLowerCase() === 'svg' || btn.tagName.toLowerCase() === 'i' ? btn : btn.querySelector('i, svg');
+                const svg = btn.querySelector('svg');
                 const span = btn.querySelector('span');
                 if (data.status === 'liked') {
-                    icon.setAttribute('fill', '#ff3040');
-                    icon.style.color = '#ff3040';
-                    icon.classList.add('active');
+                    if (svg) {
+                        svg.style.fill = '#ff3040';
+                        svg.style.color = '#ff3040';
+                        svg.querySelectorAll('path, polygon').forEach(el => el.style.fill = '#ff3040');
+                    }
                 } else {
-                    icon.removeAttribute('fill');
-                    icon.style.color = '';
-                    icon.classList.remove('active');
+                    if (svg) {
+                        svg.style.fill = 'none';
+                        svg.style.color = 'white';
+                        svg.querySelectorAll('path, polygon').forEach(el => el.style.fill = '');
+                    }
                 }
                 if (span) {
                     span.textContent = data.new_count > 1000
@@ -176,13 +180,23 @@ window.toggleSave = async (videoId, btnEl) => {
         const data = await (await fetch('../api/action.php', { method: 'POST', body: fd })).json();
         if (data.success) {
             document.querySelectorAll(`.save-btn-${videoId}`).forEach(btn => {
-                const icon = btn.tagName.toLowerCase() === 'svg' || btn.tagName.toLowerCase() === 'i' ? btn : btn.querySelector('i, svg');
+                // Lucide replaces <i> with <svg>, so target the svg
+                const svg = btn.querySelector('svg');
                 if (data.status === 'saved') {
-                    icon.setAttribute('fill', 'white');
-                    icon.classList.add('active');
+                    btn.classList.add('saved');
+                    if (svg) {
+                        svg.style.fill = 'white';
+                        svg.style.color = 'white';
+                        // Also fill inner paths
+                        svg.querySelectorAll('path, rect, polygon').forEach(el => el.style.fill = 'white');
+                    }
                 } else {
-                    icon.removeAttribute('fill');
-                    icon.classList.remove('active');
+                    btn.classList.remove('saved');
+                    if (svg) {
+                        svg.style.fill = 'none';
+                        svg.style.color = 'white';
+                        svg.querySelectorAll('path, rect, polygon').forEach(el => el.style.fill = '');
+                    }
                 }
             });
         }
