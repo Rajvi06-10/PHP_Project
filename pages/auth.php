@@ -56,6 +56,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "An error occurred during registration.";
             }
         }
+    } elseif ($action === 'forgot_password') {
+        $username    = trim($_POST['username'] ?? '');
+        $email       = trim($_POST['email'] ?? '');
+        $new_password = $_POST['new_password'] ?? '';
+        $confirm     = $_POST['confirm_password'] ?? '';
+
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? AND email = ?");
+        $stmt->execute([$username, $email]);
+        $found = $stmt->fetch();
+
+        if (!$found) {
+            $error = "No account found with that username and email.";
+        } elseif (strlen($new_password) < 6) {
+            $error = "Password must be at least 6 characters.";
+        } elseif ($new_password !== $confirm) {
+            $error = "Passwords do not match.";
+        } else {
+            $hash = password_hash($new_password, PASSWORD_DEFAULT);
+            $pdo->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$hash, $found['id']]);
+            $success = "Password reset successfully! You can now login.";
+        }
     }
 }
 ?>
@@ -113,6 +134,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             animation: fadeIn var(--transition-normal) forwards;
         }
         .auth-form.active { display: block; }
+
+        /* Password eye toggle */
+        .pwd-wrapper {
+            position: relative;
+        }
+        .pwd-wrapper .input-field {
+            padding-right: 42px;
+        }
+        .pwd-eye {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-tertiary);
+            display: flex;
+            align-items: center;
+            padding: 0;
+        }
+        .pwd-eye:hover { color: var(--color-text-primary); }
     </style>
 </head>
 <body>
@@ -151,9 +194,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="input-group">
                     <label class="input-label">Password</label>
-                    <input type="password" name="password" class="input-field" required autocomplete="new-password">
+                    <div class="pwd-wrapper">
+                        <input type="password" name="password" class="input-field" required autocomplete="new-password">
+                        <button type="button" class="pwd-eye" onclick="togglePwd(this)"><i data-lucide="eye"></i></button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary w-full justify-center">Login</button>
+                <p style="text-align:center; margin-top:14px; font-size:13px;">
+                    <a onclick="switchTab('forgot')" style="color:var(--color-primary);cursor:pointer;font-weight:600;">Forgot password?</a>
+                </p>
             </form>
 
             <form method="POST" id="signup-form" class="auth-form" autocomplete="off">
@@ -168,25 +217,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="input-group">
                     <label class="input-label">Password</label>
-                    <input type="password" name="password" class="input-field" required minlength="6" autocomplete="new-password">
+                    <div class="pwd-wrapper">
+                        <input type="password" name="password" class="input-field" required minlength="6" autocomplete="new-password">
+                        <button type="button" class="pwd-eye" onclick="togglePwd(this)"><i data-lucide="eye"></i></button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary w-full justify-center">Create Account</button>
+            </form>
+
+            <!-- Forgot Password Form -->
+            <form method="POST" id="forgot-form" class="auth-form" autocomplete="off">
+                <input type="hidden" name="action" value="forgot_password">
+                <p style="color:var(--color-text-secondary);font-size:13px;margin-bottom:16px;">
+                    Enter your username and email to reset your password.
+                </p>
+                <div class="input-group">
+                    <label class="input-label">Username</label>
+                    <input type="text" name="username" class="input-field" required>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Email</label>
+                    <input type="email" name="email" class="input-field" required>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">New Password</label>
+                    <div class="pwd-wrapper">
+                        <input type="password" name="new_password" class="input-field" required minlength="6">
+                        <button type="button" class="pwd-eye" onclick="togglePwd(this)"><i data-lucide="eye"></i></button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Confirm New Password</label>
+                    <div class="pwd-wrapper">
+                        <input type="password" name="confirm_password" class="input-field" required minlength="6">
+                        <button type="button" class="pwd-eye" onclick="togglePwd(this)"><i data-lucide="eye"></i></button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-full justify-center">Reset Password</button>
+                <p style="text-align:center;margin-top:14px;font-size:13px;">
+                    <a onclick="switchTab('login')" style="color:var(--color-primary);cursor:pointer;font-weight:600;">← Back to Login</a>
+                </p>
             </form>
         </div>
     </div>
     <script>
         lucide.createIcons();
+
+        function togglePwd(btn) {
+            const input = btn.previousElementSibling;
+            const icon  = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons({ nodes: [icon] });
+        }
         function switchTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-            if(tab === 'login') {
+
+            if (tab === 'login') {
                 document.querySelectorAll('.auth-tab')[0].classList.add('active');
                 document.getElementById('login-form').classList.add('active');
-            } else {
+            } else if (tab === 'signup') {
                 document.querySelectorAll('.auth-tab')[1].classList.add('active');
                 document.getElementById('signup-form').classList.add('active');
+            } else if (tab === 'forgot') {
+                document.getElementById('forgot-form').classList.add('active');
             }
         }
+
+        // Auto-open forgot form if there was a forgot_password POST
+        <?php if (isset($_POST['action']) && $_POST['action'] === 'forgot_password' && !$success): ?>
+        switchTab('forgot');
+        <?php endif; ?>
+        <?php if ($success): ?>
+        switchTab('login');
+        <?php endif; ?>
     </script>
     <script src="../assets/js/main.js"></script>
 </body>

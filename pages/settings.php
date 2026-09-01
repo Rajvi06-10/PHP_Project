@@ -56,6 +56,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+    } elseif (isset($_POST['change_password'])) {
+        $current_password = $_POST['current_password'] ?? '';
+        $new_password     = $_POST['new_password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+
+        // Fetch current password from DB
+        $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $userData = $stmt->fetch();
+
+        if (!password_verify($current_password, $userData['password'])) {
+            $error = "Current password is incorrect.";
+        } elseif (strlen($new_password) < 6) {
+            $error = "New password must be at least 6 characters.";
+        } elseif ($new_password !== $confirm_password) {
+            $error = "New passwords do not match.";
+        } else {
+            $hash = password_hash($new_password, PASSWORD_DEFAULT);
+            $pdo->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$hash, $userId]);
+            $message = "Password changed successfully!";
+        }
     } elseif (isset($_POST['remove_avatar'])) {
         $stmt = $pdo->prepare("UPDATE users SET avatar_url = NULL WHERE id = ?");
         $stmt->execute([$userId]);
@@ -293,6 +314,10 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                         <i data-lucide="user"></i>
                         Profile
                     </div>
+                    <div class="settings-nav-item" data-target="password">
+                        <i data-lucide="key"></i>
+                        Password
+                    </div>
                     <div class="settings-nav-item" data-target="appearance">
                         <i data-lucide="palette"></i>
                         Appearance
@@ -364,6 +389,48 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                                     <div class="text-sm text-secondary">Permanently delete your account and all data.</div>
                                 </div>
                                 <button type="submit" name="delete_account" value="1" class="btn" style="background-color: var(--color-surface); color: var(--color-danger); border: 1px solid var(--color-danger);">Delete Account</button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+
+                <!-- Password Section -->
+                <div id="section-password" class="settings-panel" style="display: none;">
+                    <section class="settings-section">
+                        <h2 class="settings-section-title">Change Password</h2>
+                        <p class="settings-section-desc">Update your password to keep your account secure.</p>
+
+                        <?php if($message && isset($_POST['change_password'])): ?>
+                            <div style="color:#10b981;background:rgba(16,185,129,0.1);padding:10px;border-radius:4px;margin-bottom:15px;"><?= $message ?></div>
+                        <?php endif; ?>
+                        <?php if($error && isset($_POST['change_password'])): ?>
+                            <div style="color:#ef4444;background:rgba(239,68,68,0.1);padding:10px;border-radius:4px;margin-bottom:15px;"><?= $error ?></div>
+                        <?php endif; ?>
+
+                        <form method="POST">
+                            <div class="input-group">
+                                <label class="input-label">Current Password</label>
+                                <div style="position:relative;">
+                                    <input type="password" name="current_password" class="input-field" required placeholder="Enter your current password" style="padding-right:42px;">
+                                    <button type="button" onclick="togglePwd(this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--color-text-tertiary);display:flex;align-items:center;padding:0;"><i data-lucide="eye"></i></button>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">New Password</label>
+                                <div style="position:relative;">
+                                    <input type="password" name="new_password" class="input-field" required placeholder="At least 6 characters" minlength="6" style="padding-right:42px;">
+                                    <button type="button" onclick="togglePwd(this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--color-text-tertiary);display:flex;align-items:center;padding:0;"><i data-lucide="eye"></i></button>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Confirm New Password</label>
+                                <div style="position:relative;">
+                                    <input type="password" name="confirm_password" class="input-field" required placeholder="Repeat new password" style="padding-right:42px;">
+                                    <button type="button" onclick="togglePwd(this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--color-text-tertiary);display:flex;align-items:center;padding:0;"><i data-lucide="eye"></i></button>
+                                </div>
+                            </div>
+                            <div class="flex justify-end mt-6">
+                                <button type="submit" name="change_password" value="1" class="btn btn-primary">Update Password</button>
                             </div>
                         </form>
                     </section>
@@ -452,6 +519,16 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                 </div>
 
                 <script>
+                    // Auto-open password panel if submitted
+                    <?php if (isset($_POST['change_password'])): ?>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        document.querySelectorAll('.settings-nav-item').forEach(n => n.classList.remove('active'));
+                        document.querySelectorAll('.settings-panel').forEach(p => p.style.display = 'none');
+                        document.querySelector('[data-target="password"]').classList.add('active');
+                        document.getElementById('section-password').style.display = 'block';
+                    });
+                    <?php endif; ?>
+
                     document.querySelectorAll('.settings-nav-item').forEach(item => {
                         item.addEventListener('click', () => {
                             // Update active nav
@@ -469,6 +546,19 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                             }
                         });
                     });
+
+                    function togglePwd(btn) {
+                        const input = btn.previousElementSibling;
+                        const icon  = btn.querySelector('i');
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            icon.setAttribute('data-lucide', 'eye-off');
+                        } else {
+                            input.type = 'password';
+                            icon.setAttribute('data-lucide', 'eye');
+                        }
+                        lucide.createIcons({ nodes: [icon] });
+                    }
                 </script>
             </div> <!-- /settings-layout -->
             </div> <!-- /main-content-inner -->
