@@ -266,21 +266,21 @@ $username = $_SESSION['username'] ?? 'User';
         /* ── Navigation arrows overlaid on carousel ──────────────── */
         .carousel-nav {
             position: absolute;
-            top: 50%;
+            top: 25%; /* Moved up to avoid overlapping with action buttons */
             transform: translateY(-50%);
             z-index: 20;
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.18);
+            background: rgba(0,0,0,0.4);
             backdrop-filter: blur(4px);
-            border: 1px solid rgba(255,255,255,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
         }
         .carousel-nav:hover { background: rgba(255,255,255,0.32); }
         .carousel-nav.nav-prev { left: 10px; }
