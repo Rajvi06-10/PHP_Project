@@ -79,7 +79,7 @@ function render2DCarousel(feed) {
                         <video class="video-thumbnail"
                                src="../${video.file_path}"
                                loop playsinline preload="metadata"
-                               onclick="this.paused ? this.play() : this.pause()"></video>
+                               onclick="handleVideoTap(this, ${video.id})"></video>
 
                         <!-- category badge -->
                         <div class="card-top-left">${category.category_name}</div>
@@ -94,7 +94,7 @@ function render2DCarousel(feed) {
 
                         <!-- action buttons -->
                         <div class="card-actions-right">
-                            <div class="card-action" onclick="toggleLike(${video.id}, this)">
+                            <div class="card-action like-btn-${video.id}" onclick="toggleLike(${video.id}, this)">
                                 <i data-lucide="heart" ${video.is_liked ? 'fill="white" class="active"' : ''}></i>
                                 <span>${video.like_count > 1000 ? (video.like_count / 1000).toFixed(1) + 'K' : video.like_count}</span>
                             </div>
@@ -391,3 +391,45 @@ document.addEventListener('DOMContentLoaded', () => {
         postBtn.disabled = false;
     });
 });
+
+let tapTimers = {};
+
+function handleVideoTap(videoEl, videoId) {
+    if (!tapTimers[videoId]) {
+        // First tap
+        tapTimers[videoId] = setTimeout(() => {
+            tapTimers[videoId] = null;
+            // Single tap action: toggle play/pause
+            if (videoEl.paused) videoEl.play().catch(()=>{});
+            else videoEl.pause();
+        }, 250);
+    } else {
+        // Second tap (Double Tap)
+        clearTimeout(tapTimers[videoId]);
+        tapTimers[videoId] = null;
+        triggerDoubleTapLike(videoEl.parentElement, videoId);
+    }
+}
+
+function triggerDoubleTapLike(cardEl, videoId) {
+    // 1. Show heart animation
+    const heart = document.createElement('i');
+    heart.setAttribute('data-lucide', 'heart');
+    heart.setAttribute('fill', 'white');
+    heart.className = 'heart-animation';
+    cardEl.appendChild(heart);
+    lucide.createIcons({ root: cardEl });
+    
+    setTimeout(() => {
+        if (heart.parentNode) heart.parentNode.removeChild(heart);
+    }, 900);
+
+    // 2. Trigger like logic if not liked
+    const likeBtn = cardEl.querySelector(`.like-btn-${videoId}`);
+    if (likeBtn) {
+        const icon = likeBtn.querySelector('i');
+        if (!icon.classList.contains('active')) {
+            toggleLike(videoId, likeBtn);
+        }
+    }
+}
