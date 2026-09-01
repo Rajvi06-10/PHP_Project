@@ -106,8 +106,8 @@ function render2DCarousel(feed) {
                                 <i data-lucide="send"></i>
                                 <span>Share</span>
                             </div>
-                            <div class="card-action" onclick="toggleSave(${video.id}, this)">
-                                <i data-lucide="bookmark" ${video.is_saved ? 'fill="white" class="active"' : ''}></i>
+                            <div class="card-action save-btn ${video.is_saved ? 'saved' : ''}" onclick="toggleSave(${video.id}, this)" data-video-id="${video.id}">
+                                <i data-lucide="bookmark"></i>
                             </div>
                         </div>
 
@@ -298,13 +298,12 @@ async function toggleSave(videoId, btnEl) {
 
         const data = await (await fetch('../api/action.php', { method: 'POST', body: fd })).json();
         if (data.success) {
-            const icon = btnEl.querySelector('i');
+            // Toggle the .saved class on the parent .card-action div
+            // CSS handles the visual fill via .save-btn.saved svg
             if (data.status === 'saved') {
-                icon.setAttribute('fill', 'white');
-                icon.classList.add('active');
+                btnEl.classList.add('saved');
             } else {
-                icon.removeAttribute('fill');
-                icon.classList.remove('active');
+                btnEl.classList.remove('saved');
             }
         }
     } catch (e) { console.error('Save failed', e); }
