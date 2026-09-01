@@ -311,7 +311,7 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
                         <div class="grid-video-stats">
                             <i data-lucide="play" style="width: 14px; height: 14px;"></i> <?= number_format($video['views']) ?>
                         </div>
-                        <?php if($isOwner): ?>
+                        <?php if($isOwner && $activeTab !== 'saved'): ?>
                         <button onclick="deleteVideo(<?= $video['id'] ?>); event.stopPropagation();" title="Delete Reel" style="position: absolute; top: 8px; right: 8px; background: rgba(220, 38, 38, 0.85); color: white; border: none; padding: 6px; border-radius: 50%; cursor: pointer; backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 20; transition: all 0.2s;">
                             <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
                         </button>
