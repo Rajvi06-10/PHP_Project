@@ -56,7 +56,7 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
     <link rel="stylesheet" href="../assets/css/layout.css">
     
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="../assets/js/main.js" defer></script>
+    <script src="../assets/js/main.js?v=<?= time() ?>" defer></script>
 
     <style>
         .profile-banner {

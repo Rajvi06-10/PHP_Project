@@ -225,21 +225,6 @@ $username = $_SESSION['username'] ?? 'User';
             filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
         }
 
-        /* Like — filled red when active */
-        .like-btn-active svg, .card-action i.active, .card-action svg.active {
-            fill: #ff3040;
-            color: #ff3040;
-        }
-
-        /* Save — filled white when saved */
-        .save-btn.saved svg {
-            fill: white;
-            color: white;
-        }
-        .save-btn svg {
-            transition: fill 0.2s, color 0.2s;
-        }
-
         /* bottom info bar */
         .card-bottom-info {
             position: absolute;
@@ -443,8 +428,8 @@ $username = $_SESSION['username'] ?? 'User';
     </script>
 
     <!-- Feed logic (direction-aware version) -->
-    <script src="../assets/js/feed.js"></script>
-    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/feed.js?v=<?= time() ?>"></script>
+    <script src="../assets/js/main.js?v=<?= time() ?>"></script>
 
     <script>
         lucide.createIcons();
