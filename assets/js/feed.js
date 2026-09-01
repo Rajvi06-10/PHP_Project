@@ -158,8 +158,10 @@ function init2DSwipers(feed) {
             initialSlide:    savedInner,
             mousewheel: {
                 forceToAxis: true,
-                releaseOnEdges: true
+                releaseOnEdges: true,
+                thresholdTime: 350
             },
+            speed: 400,
             keyboard:        true,
             on: {
                 slideChangeTransitionEnd() {
