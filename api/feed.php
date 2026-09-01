@@ -11,32 +11,7 @@ try {
     $cat_stmt = $pdo->query("SELECT id, name FROM categories ORDER BY id ASC");
     $categories = $cat_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Sync videos from the video folder dynamically to the database
-    $videoDir = '../video/';
-    if (is_dir($videoDir)) {
-        $localFiles = array_diff(scandir($videoDir), array('.', '..'));
-        $localFiles = array_filter($localFiles, function($f) use ($videoDir) {
-            return is_file($videoDir . $f) && preg_match('/\.(mp4|webm|ogg)$/i', $f);
-        });
 
-        foreach ($localFiles as $file) {
-            $filePath = 'video/' . $file;
-            $stmt = $pdo->prepare("SELECT id FROM videos WHERE file_path = ?");
-            $stmt->execute([$filePath]);
-            if (!$stmt->fetch()) {
-                // Ensure there is at least one user
-                $userStmt = $pdo->query("SELECT id FROM users LIMIT 1");
-                $user = $userStmt->fetch();
-                $uId = $user ? $user['id'] : 1;
-                
-                // Assign to a category (e.g. random or the first one)
-                $defaultCat = !empty($categories) ? $categories[array_rand($categories)]['id'] : 1;
-
-                $insertStmt = $pdo->prepare("INSERT INTO videos (user_id, category_id, file_path, description, visibility, views) VALUES (?, ?, ?, ?, 'Public', 0)");
-                $insertStmt->execute([$uId, $defaultCat, $filePath, 'New video from folder']);
-            }
-        }
-    }
     
     $feed = [];
     
