@@ -53,11 +53,11 @@ try {
                    (SELECT COUNT(*) FROM follows WHERE following_id = v.user_id AND follower_id = ?) as is_following
             FROM videos v
             JOIN users u ON v.user_id = u.id
-            WHERE v.category_id = ?
+            WHERE v.category_id = ? AND (v.visibility = 'Public' OR v.user_id = ?)
             ORDER BY v.created_at DESC
         ");
         
-        $vid_stmt->execute([$current_user_id, $current_user_id, $current_user_id, $cat['id']]);
+        $vid_stmt->execute([$current_user_id, $current_user_id, $current_user_id, $cat['id'], $current_user_id]);
         $videos = $vid_stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Fetch hashtags for each video
