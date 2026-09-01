@@ -95,7 +95,7 @@ function render2DCarousel(feed) {
                         <!-- action buttons -->
                         <div class="card-actions-right">
                             <div class="card-action like-btn-${video.id}" onclick="toggleLike(${video.id}, this)">
-                                <i data-lucide="heart" ${video.is_liked ? 'fill="white" class="active"' : ''}></i>
+                                <i data-lucide="heart" ${video.is_liked ? 'fill="#ff3040" style="color: #ff3040;" class="active"' : ''}></i>
                                 <span>${video.like_count > 1000 ? (video.like_count / 1000).toFixed(1) + 'K' : video.like_count}</span>
                             </div>
                             <div class="card-action" onclick="addComment(${video.id}, this)">
@@ -270,10 +270,12 @@ async function toggleLike(videoId, btnEl) {
             const icon = btnEl.querySelector('i');
             const span = btnEl.querySelector('span');
             if (data.status === 'liked') {
-                icon.setAttribute('fill', 'white');
+                icon.setAttribute('fill', '#ff3040');
+                icon.style.color = '#ff3040';
                 icon.classList.add('active');
             } else {
                 icon.removeAttribute('fill');
+                icon.style.color = '';
                 icon.classList.remove('active');
             }
             span.textContent = data.new_count > 1000
