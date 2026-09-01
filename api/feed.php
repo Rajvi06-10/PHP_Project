@@ -69,23 +69,26 @@ try {
         $vid_stmt->execute([$current_user_id, $current_user_id, $current_user_id, $cat['id'], $current_user_id]);
         $videos = $vid_stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Fetch hashtags for each video
-        foreach ($videos as &$video) {
-            $tag_stmt = $pdo->prepare("SELECT tag FROM hashtags WHERE video_id = ?");
-            $tag_stmt->execute([$video['id']]);
-            $video['hashtags'] = $tag_stmt->fetchAll(PDO::FETCH_COLUMN);
+        // Only include the category if it has at least one video
+        if (count($videos) > 0) {
+            // Fetch hashtags for each video
+            foreach ($videos as &$video) {
+                $tag_stmt = $pdo->prepare("SELECT tag FROM hashtags WHERE video_id = ?");
+                $tag_stmt->execute([$video['id']]);
+                $video['hashtags'] = $tag_stmt->fetchAll(PDO::FETCH_COLUMN);
+                
+                // Format booleans
+                $video['is_liked'] = (bool)$video['is_liked'];
+                $video['is_saved'] = (bool)$video['is_saved'];
+                $video['is_following'] = (bool)$video['is_following'];
+            }
             
-            // Format booleans
-            $video['is_liked'] = (bool)$video['is_liked'];
-            $video['is_saved'] = (bool)$video['is_saved'];
-            $video['is_following'] = (bool)$video['is_following'];
+            $feed[] = [
+                'category_id' => $cat['id'],
+                'category_name' => $cat['name'],
+                'videos' => $videos
+            ];
         }
-        
-        $feed[] = [
-            'category_id' => $cat['id'],
-            'category_name' => $cat['name'],
-            'videos' => $videos
-        ];
     }
     
     echo json_encode(['success' => true, 'feed' => $feed]);
