@@ -143,32 +143,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="auth-tab" onclick="switchTab('signup')">Sign Up</div>
             </div>
 
-            <form method="POST" id="login-form" class="auth-form active">
+            <form method="POST" id="login-form" class="auth-form active" autocomplete="off">
                 <input type="hidden" name="action" value="login">
                 <div class="input-group">
                     <label class="input-label">Username or Email</label>
-                    <input type="text" name="username" class="input-field" required>
+                    <input type="text" name="username" class="input-field" required autocomplete="off">
                 </div>
                 <div class="input-group">
                     <label class="input-label">Password</label>
-                    <input type="password" name="password" class="input-field" required>
+                    <input type="password" name="password" class="input-field" required autocomplete="new-password">
                 </div>
                 <button type="submit" class="btn btn-primary w-full justify-center">Login</button>
             </form>
 
-            <form method="POST" id="signup-form" class="auth-form">
+            <form method="POST" id="signup-form" class="auth-form" autocomplete="off">
                 <input type="hidden" name="action" value="signup">
                 <div class="input-group">
                     <label class="input-label">Username</label>
-                    <input type="text" name="username" class="input-field" required>
+                    <input type="text" name="username" class="input-field" required autocomplete="off">
                 </div>
                 <div class="input-group">
                     <label class="input-label">Email</label>
-                    <input type="email" name="email" class="input-field" required>
+                    <input type="email" name="email" class="input-field" required autocomplete="off">
                 </div>
                 <div class="input-group">
                     <label class="input-label">Password</label>
-                    <input type="password" name="password" class="input-field" required minlength="6">
+                    <input type="password" name="password" class="input-field" required minlength="6" autocomplete="new-password">
                 </div>
                 <button type="submit" class="btn btn-primary w-full justify-center">Create Account</button>
             </form>
