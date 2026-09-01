@@ -94,6 +94,28 @@ try {
         
         echo json_encode(['success' => true, 'count' => $count->fetchColumn()]);
         
+    } elseif ($action === 'delete_video') {
+        $video_id = $_POST['video_id'] ?? 0;
+        
+        // Verify ownership
+        $stmt = $pdo->prepare("SELECT file_path FROM videos WHERE id = ? AND user_id = ?");
+        $stmt->execute([$video_id, $user_id]);
+        $video = $stmt->fetch();
+        
+        if ($video) {
+            // Delete file from disk if it exists
+            $filePath = '../' . $video['file_path'];
+            if (file_exists($filePath) && strpos($video['file_path'], 'uploads/videos/') === 0) {
+                unlink($filePath);
+            }
+            
+            // Delete from DB (cascade handles likes/comments)
+            $pdo->prepare("DELETE FROM videos WHERE id = ?")->execute([$video_id]);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Not authorized or video not found']);
+        }
+        
     } else {
         echo json_encode(['success' => false, 'message' => 'Unknown action']);
     }

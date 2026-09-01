@@ -188,6 +188,12 @@ $feedVideos = $stmt->fetchAll();
                     <div class="post-header">
                         <img src="<?= htmlspecialchars($vAvatar) ?>" alt="Avatar">
                         <a href="profile.php?id=<?= $video['user_id'] ?>" class="username"><?= htmlspecialchars($video['username']) ?></a>
+                        
+                        <?php if($video['user_id'] == $_SESSION['user_id']): ?>
+                        <div style="margin-left: auto; cursor: pointer; color: var(--color-danger);" onclick="deleteVideo(<?= $video['id'] ?>, this)">
+                            <i data-lucide="trash-2"></i>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="post-media">

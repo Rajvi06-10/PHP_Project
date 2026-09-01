@@ -104,3 +104,32 @@ document.addEventListener('DOMContentLoaded', () => {
         feedContent.classList.add('animate-slide-up');
     }
 });
+
+// Global video delete function
+window.deleteVideo = async (videoId, btnEl) => {
+    if (!confirm('Are you sure you want to delete this video?')) return;
+    try {
+        const fd = new FormData();
+        fd.append('action', 'delete_video');
+        fd.append('video_id', videoId);
+        
+        const res = await fetch('../api/action.php', { method: 'POST', body: fd });
+        const data = await res.json();
+        
+        if (data.success) {
+            const card = btnEl.closest('.post-card') || btnEl.closest('.video-card');
+            if (card) {
+                card.style.transition = 'opacity 0.3s ease';
+                card.style.opacity = '0';
+                setTimeout(() => card.remove(), 300);
+            } else {
+                window.location.reload();
+            }
+        } else {
+            alert(data.message || 'Failed to delete video.');
+        }
+    } catch (e) {
+        console.error('Delete failed', e);
+        alert('An error occurred while deleting.');
+    }
+};
