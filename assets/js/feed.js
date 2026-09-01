@@ -267,20 +267,25 @@ async function toggleLike(videoId, btnEl) {
 
         const data = await (await fetch('../api/action.php', { method: 'POST', body: fd })).json();
         if (data.success) {
-            const icon = btnEl.querySelector('i');
-            const span = btnEl.querySelector('span');
-            if (data.status === 'liked') {
-                icon.setAttribute('fill', '#ff3040');
-                icon.style.color = '#ff3040';
-                icon.classList.add('active');
-            } else {
-                icon.removeAttribute('fill');
-                icon.style.color = '';
-                icon.classList.remove('active');
-            }
-            span.textContent = data.new_count > 1000
-                ? (data.new_count / 1000).toFixed(1) + 'K'
-                : data.new_count;
+            // Update all instances of this video's like button across categories
+            document.querySelectorAll(`.like-btn-${videoId}`).forEach(btn => {
+                const icon = btn.querySelector('i, svg');
+                const span = btn.querySelector('span');
+                if (data.status === 'liked') {
+                    icon.setAttribute('fill', '#ff3040');
+                    icon.style.color = '#ff3040';
+                    icon.classList.add('active');
+                } else {
+                    icon.removeAttribute('fill');
+                    icon.style.color = '';
+                    icon.classList.remove('active');
+                }
+                if (span) {
+                    span.textContent = data.new_count > 1000
+                        ? (data.new_count / 1000).toFixed(1) + 'K'
+                        : data.new_count;
+                }
+            });
         }
     } catch (e) { console.error('Like failed', e); }
 }
@@ -415,22 +420,21 @@ function handleVideoTap(videoEl, videoId) {
 
 function triggerDoubleTapLike(cardEl, videoId) {
     // 1. Show heart animation
-    const heart = document.createElement('i');
-    heart.setAttribute('data-lucide', 'heart');
-    heart.setAttribute('fill', 'white');
-    heart.className = 'heart-animation';
-    cardEl.appendChild(heart);
-    lucide.createIcons({ root: cardEl });
+    const heartContainer = document.createElement('div');
+    heartContainer.className = 'heart-animation';
+    heartContainer.innerHTML = '<i data-lucide="heart" fill="white"></i>';
+    cardEl.appendChild(heartContainer);
+    lucide.createIcons({ root: heartContainer });
     
     setTimeout(() => {
-        if (heart.parentNode) heart.parentNode.removeChild(heart);
+        if (heartContainer.parentNode) heartContainer.parentNode.removeChild(heartContainer);
     }, 900);
 
     // 2. Trigger like logic if not liked
     const likeBtn = cardEl.querySelector(`.like-btn-${videoId}`);
     if (likeBtn) {
-        const icon = likeBtn.querySelector('i');
-        if (!icon.classList.contains('active')) {
+        const icon = likeBtn.querySelector('i, svg');
+        if (icon && !icon.classList.contains('active')) {
             toggleLike(videoId, likeBtn);
         }
     }
