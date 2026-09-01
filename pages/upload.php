@@ -20,6 +20,27 @@ $categories = $cat_stmt->fetchAll(PDO::FETCH_ASSOC);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $caption = $_POST['caption'] ?? '';
     $category_id = $_POST['category_id'] ?? 1;
+    
+    // Handle custom category creation
+    if ($category_id === 'new') {
+        $new_category = trim($_POST['new_category'] ?? '');
+        if (!empty($new_category)) {
+            $stmt = $pdo->prepare("SELECT id FROM categories WHERE name = ?");
+            $stmt->execute([$new_category]);
+            $existing = $stmt->fetch();
+            
+            if ($existing) {
+                $category_id = $existing['id'];
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO categories (name) VALUES (?)");
+                $stmt->execute([$new_category]);
+                $category_id = $pdo->lastInsertId();
+            }
+        } else {
+            $category_id = 1; // fallback
+        }
+    }
+    
     $visibility = $_POST['visibility'] ?? 'Public';
     $hashtags_input = $_POST['hashtags'] ?? '';
     
@@ -220,12 +241,17 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                             <div class="input-group mb-4">
                                 <label class="input-label">Category</label>
                                 <div style="position: relative;">
-                                    <select name="category_id" class="input-field" style="appearance: none;">
+                                    <select name="category_id" id="categorySelect" class="input-field" style="appearance: none;" onchange="toggleNewCategory()">
                                         <?php foreach ($categories as $cat): ?>
                                             <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
                                         <?php endforeach; ?>
+                                        <option value="new">+ Add new category</option>
                                     </select>
                                     <i data-lucide="chevron-down" style="position: absolute; right: 12px; top: 12px; color: var(--color-text-secondary); width: 18px; height: 18px; pointer-events: none;"></i>
+                                </div>
+                                
+                                <div id="newCategoryContainer" style="display: none; margin-top: 12px;">
+                                    <input type="text" name="new_category" class="input-field" placeholder="Enter new category name">
                                 </div>
                             </div>
 
@@ -255,6 +281,12 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
     </div>
     
     <script>
+        function toggleNewCategory() {
+            const sel = document.getElementById('categorySelect');
+            const container = document.getElementById('newCategoryContainer');
+            container.style.display = sel.value === 'new' ? 'block' : 'none';
+        }
+        
         document.getElementById('video_file').addEventListener('change', function(e) {
             if(this.files && this.files[0]) {
                 document.getElementById('file-name-display').textContent = 'Selected: ' + this.files[0].name;
