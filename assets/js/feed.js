@@ -156,7 +156,11 @@ function init2DSwipers(feed) {
             nested:          true,
             resistanceRatio: 0,
             initialSlide:    savedInner,
-            mousewheel:      true,
+            mousewheel: {
+                forceToAxis: true,
+                thresholdDelta: 50,
+                sensitivity: 1
+            },
             keyboard:        true,
             on: {
                 slideChangeTransitionEnd() {
