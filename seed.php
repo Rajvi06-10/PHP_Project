@@ -4,13 +4,13 @@ require_once 'config/db.php';
 try {
     // Check if test user exists
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-    $stmt->execute(['test@zyva.com']);
+    $stmt->execute(['test@swipenest.com']);
     $user = $stmt->fetch();
 
     if (!$user) {
         $hash = password_hash('password123', PASSWORD_DEFAULT);
         $pdo->prepare("INSERT INTO users (username, email, password_hash, avatar_url) VALUES (?, ?, ?, ?)")
-            ->execute(['TestUser', 'test@zyva.com', $hash, 'https://i.pravatar.cc/150?img=33']);
+            ->execute(['TestUser', 'test@swipenest.com', $hash, 'https://i.pravatar.cc/150?img=33']);
         $user_id = $pdo->lastInsertId();
     } else {
         $user_id = $user['id'];

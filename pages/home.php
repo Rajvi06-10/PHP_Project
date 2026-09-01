@@ -12,7 +12,15 @@ $avatarSrc = $sessionAvatar;
 $username = $_SESSION['username'] ?? 'User';
 
 // Fetch all videos for home feed (Instagram style)
-$stmt = $pdo->query("SELECT v.*, u.username, u.avatar_url FROM videos v JOIN users u ON v.user_id = u.id ORDER BY v.created_at DESC");
+$stmt = $pdo->prepare("
+    SELECT v.*, u.username, u.avatar_url,
+           (SELECT COUNT(*) FROM likes WHERE video_id = v.id) as like_count,
+           (SELECT COUNT(*) FROM likes WHERE video_id = v.id AND user_id = ?) as is_liked
+    FROM videos v 
+    JOIN users u ON v.user_id = u.id 
+    ORDER BY v.created_at DESC
+");
+$stmt->execute([$_SESSION['user_id']]);
 $feedVideos = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -44,6 +52,7 @@ $feedVideos = $stmt->fetchAll();
             border-radius: 8px;
             margin-bottom: 24px;
             overflow: hidden;
+            position: relative; /* For double tap heart */
         }
         
         .post-header {
@@ -73,12 +82,14 @@ $feedVideos = $stmt->fetchAll();
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
         
         .post-video {
             width: 100%;
             max-height: 600px;
             object-fit: contain;
+            cursor: pointer;
         }
         
         .post-actions {
@@ -88,12 +99,12 @@ $feedVideos = $stmt->fetchAll();
             padding: 12px 14px;
         }
         
-        .post-actions i {
+        .post-actions i, .post-actions svg {
             cursor: pointer;
             transition: color 0.2s;
         }
         
-        .post-actions i:hover {
+        .post-actions i:hover, .post-actions svg:hover {
             color: var(--color-text-secondary);
         }
         
@@ -197,18 +208,20 @@ $feedVideos = $stmt->fetchAll();
                     </div>
                     
                     <div class="post-media">
-                        <video class="post-video" src="../<?= htmlspecialchars($video['file_path']) ?>" loop playsinline preload="metadata" onclick="this.paused ? this.play() : this.pause()"></video>
+                        <video class="post-video" src="../<?= htmlspecialchars($video['file_path']) ?>" loop playsinline preload="metadata" onclick="handleVideoTap(this, <?= $video['id'] ?>)"></video>
                     </div>
                     
                     <div class="post-actions">
-                        <i data-lucide="heart" onclick="toggleLike(<?= $video['id'] ?>, this)"></i>
+                        <i data-lucide="heart" class="like-btn-<?= $video['id'] ?> <?= $video['is_liked'] ? 'active' : '' ?>" style="<?= $video['is_liked'] ? 'color:#ff3040; fill:#ff3040;' : '' ?>" onclick="toggleLike(<?= $video['id'] ?>, this)"></i>
                         <i data-lucide="message-circle" onclick="addComment(<?= $video['id'] ?>, this)"></i>
-                        <i data-lucide="send"></i>
+                        <i data-lucide="send" onclick="shareVideo('<?= htmlspecialchars($video['file_path']) ?>')"></i>
                         <i data-lucide="bookmark" style="margin-left: auto;" onclick="toggleSave(<?= $video['id'] ?>, this)"></i>
                     </div>
                     
                     <div class="post-details">
-                        <div class="post-likes"><?= $video['views'] ?> views</div>
+                        <div class="post-likes">
+                            <span class="like-btn-<?= $video['id'] ?>"><span><?= $video['like_count'] > 1000 ? number_format($video['like_count']/1000, 1) . 'K' : $video['like_count'] ?></span></span> likes
+                        </div>
                         <div class="post-caption">
                             <span class="username"><?= htmlspecialchars($video['username']) ?></span>
                             <?= htmlspecialchars($video['description']) ?>

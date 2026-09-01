@@ -267,7 +267,6 @@ async function toggleLike(videoId, btnEl) {
 
         const data = await (await fetch('../api/action.php', { method: 'POST', body: fd })).json();
         if (data.success) {
-            // Update all instances of this video's like button across categories
             document.querySelectorAll(`.like-btn-${videoId}`).forEach(btn => {
                 const icon = btn.querySelector('i, svg');
                 const span = btn.querySelector('span');
@@ -298,8 +297,6 @@ async function toggleSave(videoId, btnEl) {
 
         const data = await (await fetch('../api/action.php', { method: 'POST', body: fd })).json();
         if (data.success) {
-            // Toggle the .saved class on the parent .card-action div
-            // CSS handles the visual fill via .save-btn.saved svg
             if (data.status === 'saved') {
                 btnEl.classList.add('saved');
             } else {
@@ -402,15 +399,12 @@ let tapTimers = {};
 
 function handleVideoTap(videoEl, videoId) {
     if (!tapTimers[videoId]) {
-        // First tap
         tapTimers[videoId] = setTimeout(() => {
             tapTimers[videoId] = null;
-            // Single tap action: toggle play/pause
-            if (videoEl.paused) videoEl.play().catch(()=>{});
+            if (videoEl.paused) videoEl.play().catch(() => {});
             else videoEl.pause();
         }, 250);
     } else {
-        // Second tap (Double Tap)
         clearTimeout(tapTimers[videoId]);
         tapTimers[videoId] = null;
         triggerDoubleTapLike(videoEl.parentElement, videoId);
@@ -418,18 +412,16 @@ function handleVideoTap(videoEl, videoId) {
 }
 
 function triggerDoubleTapLike(cardEl, videoId) {
-    // 1. Show heart animation
     const heartContainer = document.createElement('div');
     heartContainer.className = 'heart-animation';
     heartContainer.innerHTML = '<i data-lucide="heart" fill="white"></i>';
     cardEl.appendChild(heartContainer);
     lucide.createIcons({ root: heartContainer });
-    
+
     setTimeout(() => {
         if (heartContainer.parentNode) heartContainer.parentNode.removeChild(heartContainer);
     }, 900);
 
-    // 2. Trigger like logic if not liked
     const likeBtn = cardEl.querySelector(`.like-btn-${videoId}`);
     if (likeBtn) {
         const icon = likeBtn.querySelector('i, svg');
