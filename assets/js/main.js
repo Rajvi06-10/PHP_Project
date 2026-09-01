@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Theme Toggle Initialization ---
     const initTheme = () => {
-        const savedTheme = localStorage.getItem('zyva_theme');
+        const savedTheme = localStorage.getItem('swipe_nest_theme');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         
         if (savedTheme) {
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('zyva_theme', newTheme);
+        localStorage.setItem('swipe_nest_theme', newTheme);
         
         // Optional: Update toggle icon if it exists
         const themeIcons = document.querySelectorAll('.theme-icon');

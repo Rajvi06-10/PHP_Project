@@ -29,8 +29,8 @@ Follow these instructions to run Swipe Nest locally on your machine.
 ### 2. Database Configuration
 1. Open your browser and navigate to `http://localhost/phpmyadmin`.
 2. Click **New** on the left sidebar to create a new database.
-3. Name the database exactly: `zyva_db` (or update `config/db.php` if you choose a different name).
-4. Select the `zyva_db` database, click the **Import** tab at the top.
+3. Name the database exactly: `swipe_nest_db` (or update `config/db.php` if you choose a different name).
+4. Select the `swipe_nest_db` database, click the **Import** tab at the top.
 5. Choose the `swipe_nest.sql` file included in the root of this project folder.
 6. Click **Import** (or Go) at the bottom. This will automatically generate all required tables and populate default categories.
 
