@@ -304,13 +304,18 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
                 </div>
 
                 <!-- Video Grid -->
-                <div class="grid-videos">
+                <div class="grid-videos" id="video-grid">
                     <?php foreach($videos as $video): ?>
-                    <div class="grid-video-card cursor-pointer">
+                    <div class="grid-video-card cursor-pointer" id="video-card-<?= $video['id'] ?>">
                         <video src="../<?= htmlspecialchars($video['file_path']) ?>" style="width: 100%; height: 100%; object-fit: cover;"></video>
                         <div class="grid-video-stats">
                             <i data-lucide="play" style="width: 14px; height: 14px;"></i> <?= number_format($video['views']) ?>
                         </div>
+                        <?php if($isOwner): ?>
+                        <button onclick="deleteVideo(<?= $video['id'] ?>); event.stopPropagation();" title="Delete Reel" style="position: absolute; top: 8px; right: 8px; background: rgba(220, 38, 38, 0.85); color: white; border: none; padding: 6px; border-radius: 50%; cursor: pointer; backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 20; transition: all 0.2s;">
+                            <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
+                        </button>
+                        <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                     
@@ -326,6 +331,29 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
     </div>
 
     <script>
+        async function deleteVideo(videoId) {
+            if (!confirm("Are you sure you want to delete this reel?")) return;
+            try {
+                const formData = new FormData();
+                formData.append('action', 'delete_video');
+                formData.append('video_id', videoId);
+                
+                const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.success) {
+                    const card = document.getElementById('video-card-' + videoId);
+                    if (card) {
+                        card.style.transform = 'scale(0.8)';
+                        card.style.opacity = '0';
+                        setTimeout(() => card.remove(), 300);
+                    }
+                } else {
+                    alert(data.message || 'Failed to delete video');
+                }
+            } catch(e) { console.error('Delete failed', e); }
+        }
+
         async function toggleFollow(userId, btnEl) {
             try {
                 const formData = new FormData();

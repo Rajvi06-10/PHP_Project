@@ -65,18 +65,16 @@ try {
         
         $stmt = $pdo->prepare("SELECT id FROM follows WHERE follower_id = ? AND following_id = ?");
         $stmt->execute([$user_id, $following_id]);
-        $exists = $stmt->fetch();
         
-        if ($exists) {
+        if ($stmt->fetch()) {
             $pdo->prepare("DELETE FROM follows WHERE follower_id = ? AND following_id = ?")->execute([$user_id, $following_id]);
-            $status = 'unfollowed';
+            echo json_encode(['success' => true, 'status' => 'unfollowed']);
         } else {
             $pdo->prepare("INSERT INTO follows (follower_id, following_id) VALUES (?, ?)")->execute([$user_id, $following_id]);
-            $status = 'followed';
+            echo json_encode(['success' => true, 'status' => 'followed']);
         }
         
-        echo json_encode(['success' => true, 'status' => $status]);
-        
+
     } elseif ($action === 'add_comment') {
         $video_id = $_POST['video_id'] ?? 0;
         $comment_text = trim($_POST['content'] ?? '');
@@ -109,7 +107,27 @@ try {
                 unlink($filePath);
             }
             
-            // Delete from DB (cascade handles likes/comments)
+            // Delete from DB manually to handle missing cascades
+            try {
+                $pdo->prepare("DELETE FROM reports WHERE reported_video_id = ?")->execute([$video_id]);
+            } catch (Exception $e) {}
+            
+            try {
+                $pdo->prepare("DELETE FROM hashtags WHERE video_id = ?")->execute([$video_id]);
+            } catch (Exception $e) {}
+            
+            try {
+                $pdo->prepare("DELETE FROM comments WHERE video_id = ?")->execute([$video_id]);
+            } catch (Exception $e) {}
+            
+            try {
+                $pdo->prepare("DELETE FROM likes WHERE video_id = ?")->execute([$video_id]);
+            } catch (Exception $e) {}
+            
+            try {
+                $pdo->prepare("DELETE FROM saved_reels WHERE video_id = ?")->execute([$video_id]);
+            } catch (Exception $e) {}
+
             $pdo->prepare("DELETE FROM videos WHERE id = ?")->execute([$video_id]);
             echo json_encode(['success' => true]);
         } else {

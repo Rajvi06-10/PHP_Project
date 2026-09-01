@@ -152,16 +152,19 @@ function init2DSwipers(feed) {
         const savedInner = parseInt(sessionStorage.getItem(stateKey) || '0');
 
         const sw = new Swiper(`.swiper-inner-${index}`, {
-            direction:       'vertical',    // ← videos scroll vertically
+            direction:       'vertical',
             nested:          true,
-            resistanceRatio: 0,
+            // Instagram-like physics
             initialSlide:    savedInner,
+            touchRatio:      1.2,
+            shortSwipes:     true,
+            longSwipesRatio: 0.1,
             mousewheel: {
                 forceToAxis: true,
                 releaseOnEdges: true,
-                thresholdTime: 350
+                thresholdTime: 250 // faster mousewheel snapping
             },
-            speed: 400,
+            speed: 300, // Snappy animation
             keyboard:        true,
             on: {
                 slideChangeTransitionEnd() {

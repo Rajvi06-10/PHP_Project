@@ -14,24 +14,62 @@ try {
     // Sync videos from the video folder dynamically to the database
     $videoDir = '../video/';
     if (is_dir($videoDir)) {
-        $localFiles = array_diff(scandir($videoDir), array('.', '..'));
-        $localFiles = array_filter($localFiles, function($f) use ($videoDir) {
-            return is_file($videoDir . $f) && preg_match('/\.(mp4|webm|ogg)$/i', $f);
-        });
+        $items = array_diff(scandir($videoDir), array('.', '..'));
+        
+        $userStmt = $pdo->query("SELECT id FROM users LIMIT 1");
+        $user = $userStmt->fetch();
+        $uId = $user ? $user['id'] : 1;
 
-        foreach ($localFiles as $file) {
-            $filePath = 'video/' . $file;
-            $stmt = $pdo->prepare("SELECT id FROM videos WHERE file_path = ?");
-            $stmt->execute([$filePath]);
-            if (!$stmt->fetch()) {
-                $userStmt = $pdo->query("SELECT id FROM users LIMIT 1");
-                $user = $userStmt->fetch();
-                $uId = $user ? $user['id'] : 1;
-                $defaultCat = !empty($categories) ? $categories[array_rand($categories)]['id'] : 1;
-                $insertStmt = $pdo->prepare("INSERT INTO videos (user_id, category_id, file_path, description, visibility, views) VALUES (?, ?, ?, ?, 'Public', 0)");
-                $insertStmt->execute([$uId, $defaultCat, $filePath, 'New video from folder']);
+        foreach ($items as $item) {
+            $itemPath = $videoDir . $item;
+            
+            if (is_dir($itemPath)) {
+                // It's a category folder (e.g., video/Comedy)
+                $catName = trim($item);
+                
+                // Get or create category
+                $checkCat = $pdo->prepare("SELECT id FROM categories WHERE LOWER(name) = LOWER(?)");
+                $checkCat->execute([$catName]);
+                $catData = $checkCat->fetch();
+                
+                if ($catData) {
+                    $catId = $catData['id'];
+                } else {
+                    $insCat = $pdo->prepare("INSERT INTO categories (name) VALUES (?)");
+                    $insCat->execute([$catName]);
+                    $catId = $pdo->lastInsertId();
+                }
+
+                // Scan videos inside this category folder
+                $subFiles = array_diff(scandir($itemPath), array('.', '..'));
+                foreach ($subFiles as $f) {
+                    if (is_file($itemPath . '/' . $f) && preg_match('/\.(mp4|webm|ogg)$/i', $f)) {
+                        $filePath = 'video/' . $item . '/' . $f;
+                        
+                        $stmt = $pdo->prepare("SELECT id FROM videos WHERE file_path = ?");
+                        $stmt->execute([$filePath]);
+                        if (!$stmt->fetch()) {
+                            $insertStmt = $pdo->prepare("INSERT INTO videos (user_id, category_id, file_path, description, visibility, views) VALUES (?, ?, ?, ?, 'Public', 0)");
+                            $insertStmt->execute([$uId, $catId, $filePath, $catName . ' Reel']);
+                        }
+                    }
+                }
+            } elseif (is_file($itemPath) && preg_match('/\.(mp4|webm|ogg)$/i', $item)) {
+                // It's a video directly in video/ (no category folder)
+                $filePath = 'video/' . $item;
+                $stmt = $pdo->prepare("SELECT id FROM videos WHERE file_path = ?");
+                $stmt->execute([$filePath]);
+                if (!$stmt->fetch()) {
+                    $defaultCat = !empty($categories) ? $categories[0]['id'] : 1;
+                    $insertStmt = $pdo->prepare("INSERT INTO videos (user_id, category_id, file_path, description, visibility, views) VALUES (?, ?, ?, ?, 'Public', 0)");
+                    $insertStmt->execute([$uId, $defaultCat, $filePath, 'New Reel']);
+                }
             }
         }
+        
+        // Re-fetch categories in case new ones were added
+        $cat_stmt = $pdo->query("SELECT id, name FROM categories ORDER BY id ASC");
+        $categories = $cat_stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // ── Helper: fetch + enrich videos ────────────────────────────

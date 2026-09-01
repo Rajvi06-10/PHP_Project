@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 $host = '127.0.0.1';
-$db   = 'swipe_nest_db';
+$db   = 'zyva_db';
 $user = 'root';
 $pass = '';
 $charset = 'utf8mb4';
