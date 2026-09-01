@@ -250,7 +250,7 @@ if (!empty($searchQuery)) {
                             <video src="../<?= htmlspecialchars($video['file_path']) ?>" style="width: 100%; height: 100%; object-fit: cover;"></video>
                             <div class="grid-video-info" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 12px 12px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); color: white;">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <i data-lucide="play" style="width: 14px; height: 14px;"></i> <?= number_format($video['view_count']) ?>
+                                    <i data-lucide="play" style="width: 14px; height: 14px;"></i> <?= number_format($video['views'] ?? 0) ?>
                                 </div>
                                 <span class="tag" style="font-size: 10px; padding: 2px 6px;">@<?= htmlspecialchars($video['username']) ?></span>
                             </div>
