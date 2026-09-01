@@ -251,9 +251,9 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                     <i data-lucide="search"></i>
                     <span>Search</span>
                 </a>
-                <a href="reels.php" class="sidebar-link">
-                    <i data-lucide="play-circle"></i>
-                    <span>Reels</span>
+                <a href="scrolls.php" class="sidebar-link">
+                    <i data-lucide="layers"></i>
+                    <span>Scrolls</span>
                 </a>
                 <a href="upload.php" class="sidebar-link">
                     <i data-lucide="plus-square"></i>
