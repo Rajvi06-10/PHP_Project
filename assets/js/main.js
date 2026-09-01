@@ -133,3 +133,180 @@ window.deleteVideo = async (videoId, btnEl) => {
         alert('An error occurred while deleting.');
     }
 };
+
+/* ─────────────────────────────────────────────────────────────────
+   Interaction handlers (Like, Save, Comment, Share)
+───────────────────────────────────────────────────────────────── */
+window.toggleLike = async (videoId, btnEl) => {
+    try {
+        const fd = new FormData();
+        fd.append('action', 'toggle_like');
+        fd.append('video_id', videoId);
+
+        const data = await (await fetch('../api/action.php', { method: 'POST', body: fd })).json();
+        if (data.success) {
+            document.querySelectorAll(`.like-btn-${videoId}`).forEach(btn => {
+                const icon = btn.tagName.toLowerCase() === 'svg' || btn.tagName.toLowerCase() === 'i' ? btn : btn.querySelector('i, svg');
+                const span = btn.querySelector('span');
+                if (data.status === 'liked') {
+                    icon.setAttribute('fill', '#ff3040');
+                    icon.style.color = '#ff3040';
+                    icon.classList.add('active');
+                } else {
+                    icon.removeAttribute('fill');
+                    icon.style.color = '';
+                    icon.classList.remove('active');
+                }
+                if (span) {
+                    span.textContent = data.new_count > 1000
+                        ? (data.new_count / 1000).toFixed(1) + 'K'
+                        : data.new_count;
+                }
+            });
+        }
+    } catch (e) { console.error('Like failed', e); }
+};
+
+window.toggleSave = async (videoId, btnEl) => {
+    try {
+        const fd = new FormData();
+        fd.append('action', 'toggle_save');
+        fd.append('video_id', videoId);
+
+        const data = await (await fetch('../api/action.php', { method: 'POST', body: fd })).json();
+        if (data.success) {
+            document.querySelectorAll(`.save-btn-${videoId}`).forEach(btn => {
+                const icon = btn.tagName.toLowerCase() === 'svg' || btn.tagName.toLowerCase() === 'i' ? btn : btn.querySelector('i, svg');
+                if (data.status === 'saved') {
+                    icon.setAttribute('fill', 'white');
+                    icon.classList.add('active');
+                } else {
+                    icon.removeAttribute('fill');
+                    icon.classList.remove('active');
+                }
+            });
+        }
+    } catch (e) { console.error('Save failed', e); }
+};
+
+let currentCommentVideoId = null;
+let currentCommentBtnSpan = null;
+
+window.addComment = async (videoId, btnEl) => {
+    currentCommentVideoId = videoId;
+    currentCommentBtnSpan = btnEl.querySelector ? btnEl.querySelector('span') : null;
+
+    document.getElementById('commentsOverlay')?.classList.add('active');
+    document.getElementById('commentsModal')?.classList.add('active');
+
+    const container = document.getElementById('commentsContainer');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:20px;">Loading...</div>';
+
+    try {
+        const data = await (await fetch('../api/comments.php?video_id=' + videoId)).json();
+        container.innerHTML = '';
+
+        if (data.success && data.comments.length > 0) {
+            data.comments.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'comment-item';
+                el.innerHTML = `
+                    <img src="${c.avatar_url}" class="comment-avatar">
+                    <div class="comment-content">
+                        <div class="comment-username">${c.username}</div>
+                        <div class="comment-text">${c.comment_text}</div>
+                        <div class="comment-time">${c.created_at}</div>
+                    </div>`;
+                container.appendChild(el);
+            });
+        } else {
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--color-text-secondary);">No comments yet. Be the first!</div>';
+        }
+    } catch (e) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:red;">Failed to load comments.</div>';
+    }
+};
+
+window.shareVideo = (filePath) => {
+    const url = window.location.origin + '/' + filePath;
+    if (navigator.share) {
+        navigator.share({ title: 'Check out this video on Swipe Nest', url }).catch(console.error);
+    } else {
+        prompt('Copy this link to share:', url);
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const closeComments = () => {
+        document.getElementById('commentsOverlay')?.classList.remove('active');
+        document.getElementById('commentsModal')?.classList.remove('active');
+    };
+
+    document.getElementById('closeCommentsBtn')?.addEventListener('click', closeComments);
+    document.getElementById('commentsOverlay')?.addEventListener('click', closeComments);
+
+    const commentInput = document.getElementById('newCommentInput');
+    const postBtn      = document.getElementById('postCommentBtn');
+
+    commentInput?.addEventListener('input', () => {
+        postBtn.disabled = commentInput.value.trim().length === 0;
+    });
+
+    postBtn?.addEventListener('click', async () => {
+        const text = commentInput.value.trim();
+        if (!text || !currentCommentVideoId) return;
+
+        postBtn.disabled = true;
+        try {
+            const fd = new FormData();
+            fd.append('action',   'add_comment');
+            fd.append('video_id', currentCommentVideoId);
+            fd.append('content',  text);
+
+            const data = await (await fetch('../api/action.php', { method: 'POST', body: fd })).json();
+            if (data.success) {
+                commentInput.value = '';
+                if (currentCommentBtnSpan) currentCommentBtnSpan.textContent = data.count;
+                window.addComment(currentCommentVideoId, currentCommentBtnSpan || document.body);
+            }
+        } catch (e) { console.error('Post failed', e); }
+        postBtn.disabled = false;
+    });
+});
+
+let tapTimers = {};
+
+window.handleVideoTap = (videoEl, videoId) => {
+    if (!tapTimers[videoId]) {
+        tapTimers[videoId] = setTimeout(() => {
+            tapTimers[videoId] = null;
+            if (videoEl.paused) videoEl.play().catch(()=>{});
+            else videoEl.pause();
+        }, 250);
+    } else {
+        clearTimeout(tapTimers[videoId]);
+        tapTimers[videoId] = null;
+        window.triggerDoubleTapLike(videoEl.parentElement, videoId);
+    }
+};
+
+window.triggerDoubleTapLike = (cardEl, videoId) => {
+    const heartContainer = document.createElement('div');
+    heartContainer.className = 'heart-animation';
+    heartContainer.innerHTML = '<i data-lucide="heart" fill="white"></i>';
+    cardEl.appendChild(heartContainer);
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: heartContainer });
+    
+    setTimeout(() => {
+        if (heartContainer.parentNode) heartContainer.parentNode.removeChild(heartContainer);
+    }, 900);
+
+    const likeBtn = cardEl.querySelector(`.like-btn-${videoId}`);
+    if (likeBtn) {
+        const icon = likeBtn.tagName.toLowerCase() === 'svg' || likeBtn.tagName.toLowerCase() === 'i' ? likeBtn : likeBtn.querySelector('i, svg');
+        if (icon && !icon.classList.contains('active')) {
+            window.toggleLike(videoId, likeBtn);
+        }
+    }
+};
