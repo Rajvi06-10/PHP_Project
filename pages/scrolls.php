@@ -12,7 +12,7 @@ $avatarSrc = $sessionAvatar;
 $username = $_SESSION['username'] ?? 'User';
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -342,6 +342,10 @@ $username = $_SESSION['username'] ?? 'User';
                     <i data-lucide="settings"></i>
                     <span>Settings</span>
                 </a>
+                <a href="#" class="sidebar-link" onclick="window.toggleTheme(); return false;">
+                    <i data-lucide="moon" class="theme-icon"></i>
+                    <span>Theme</span>
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -425,6 +429,7 @@ $username = $_SESSION['username'] ?? 'User';
 
     <!-- Feed logic (direction-aware version) -->
     <script src="../assets/js/feed.js"></script>
+    <script src="../assets/js/main.js"></script>
 
     <script>
         lucide.createIcons();

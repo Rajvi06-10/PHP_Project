@@ -17,9 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if ($action === 'login') {
-        $login_username = $_POST['username'] ?? '';
-        $stmt = $pdo->prepare("SELECT id, username, password_hash as password, avatar_url as avatar FROM users WHERE username = ?");
-        $stmt->execute([$login_username]);
+        $login_identifier = trim($_POST['username'] ?? '');
+        $stmt = $pdo->prepare("SELECT id, username, password_hash as password, avatar_url as avatar FROM users WHERE username = ? OR email = ?");
+        $stmt->execute([$login_identifier, $login_identifier]);
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {
@@ -32,7 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Invalid username or password.";
         }
     } elseif ($action === 'signup') {
-        $username = $_POST['username'] ?? '';
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
         $hash = password_hash($password, PASSWORD_DEFAULT);
         
         try {
@@ -59,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -76,19 +77,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             align-items: center;
             justify-content: center;
             padding: var(--spacing-4);
+            background: linear-gradient(135deg, var(--color-bg-primary), var(--color-bg-sidebar));
         }
         .auth-card {
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             padding: var(--spacing-8);
-            background-color: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-xl);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
         .auth-tabs {
             display: flex;
             margin-bottom: var(--spacing-6);
-            border-bottom: 1px solid var(--color-border);
+            position: relative;
         }
         .auth-tab {
             flex: 1;
@@ -96,19 +97,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: var(--spacing-3);
             cursor: pointer;
             color: var(--color-text-secondary);
-            font-weight: 500;
+            font-weight: 600;
+            transition: color var(--transition-fast);
+            border-bottom: 2px solid var(--color-border);
+        }
+        .auth-tab:hover {
+            color: var(--color-text-primary);
         }
         .auth-tab.active {
             color: var(--color-primary);
             border-bottom: 2px solid var(--color-primary);
         }
-        .auth-form { display: none; }
+        .auth-form { 
+            display: none; 
+            animation: fadeIn var(--transition-normal) forwards;
+        }
         .auth-form.active { display: block; }
     </style>
 </head>
 <body>
+    <button onclick="window.toggleTheme();" style="position: absolute; top: 20px; right: 20px; background: none; border: none; cursor: pointer; color: var(--color-text-primary);">
+        <i data-lucide="moon" class="theme-icon"></i>
+    </button>
     <div class="auth-container">
-        <div class="auth-card">
+        <div class="auth-card card">
             <div class="text-center mb-8" style="display:flex; flex-direction:column; align-items:center; gap:var(--spacing-3);">
                 <img src="../assets/images/logo.svg" alt="Swipe Nest Logo" style="width: 48px; height: 48px;">
                 <h1 style="font-family: var(--font-family-heading); font-size: 2rem; font-weight: 700; margin: 0; letter-spacing: -0.02em;">Swipe Nest</h1>
@@ -134,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" id="login-form" class="auth-form active">
                 <input type="hidden" name="action" value="login">
                 <div class="input-group">
-                    <label class="input-label">Username</label>
+                    <label class="input-label">Username or Email</label>
                     <input type="text" name="username" class="input-field" required>
                 </div>
                 <div class="input-group">
@@ -176,5 +188,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </script>
+    <script src="../assets/js/main.js"></script>
 </body>
 </html>

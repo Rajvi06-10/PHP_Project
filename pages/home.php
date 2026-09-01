@@ -16,7 +16,7 @@ $stmt = $pdo->query("SELECT v.*, u.username, u.avatar_url FROM videos v JOIN use
 $feedVideos = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -159,6 +159,10 @@ $feedVideos = $stmt->fetchAll();
                 <a href="settings.php" class="sidebar-link">
                     <i data-lucide="settings"></i>
                     <span>Settings</span>
+                </a>
+                <a href="#" class="sidebar-link" onclick="window.toggleTheme(); return false;">
+                    <i data-lucide="moon" class="theme-icon"></i>
+                    <span>Theme</span>
                 </a>
             </nav>
             

@@ -156,6 +156,8 @@ function init2DSwipers(feed) {
             nested:          true,
             resistanceRatio: 0,
             initialSlide:    savedInner,
+            mousewheel:      true,
+            keyboard:        true,
             on: {
                 slideChangeTransitionEnd() {
                     sessionStorage.setItem(stateKey, this.activeIndex);
@@ -173,6 +175,7 @@ function init2DSwipers(feed) {
         direction:       'horizontal',  // ← categories scroll horizontally
         resistanceRatio: 0,
         initialSlide:    Math.min(savedOuter, Math.max(feed.length - 1, 0)),
+        keyboard:        true,
         on: {
             slideChangeTransitionEnd() {
                 sessionStorage.setItem(outerKey, this.activeIndex);
