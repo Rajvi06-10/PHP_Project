@@ -2,7 +2,10 @@
 session_start();
 require_once '../config/db.php';
 
-$profileUserId = isset($_GET['id']) ? (int)$_GET['id'] : ($_SESSION['user_id'] ?? null);
+$username = $_SESSION['username'] ?? 'User';
+$sessionAvatar = isset($_SESSION['avatar']) && $_SESSION['avatar'] ? (strpos($_SESSION['avatar'], 'http') === 0 ? $_SESSION['avatar'] : '../' . $_SESSION['avatar']) : 'https://i.pravatar.cc/150?img=11';
+
+$profileUserId = $_GET['id'] ?? $_SESSION['user_id'] ?? null;
 
 if (!$profileUserId) {
     header("Location: auth.php");
@@ -19,7 +22,21 @@ if (!$profileUser) {
 
 $avatarSrc = $profileUser['avatar_url'] ? (strpos($profileUser['avatar_url'], 'http') === 0 ? $profileUser['avatar_url'] : '../' . $profileUser['avatar_url']) : 'https://i.pravatar.cc/150?img=11';
 
-$videoStmt = $pdo->prepare("SELECT * FROM videos WHERE user_id = ? ORDER BY created_at DESC");
+$loggedInUserId = $_SESSION['user_id'] ?? null;
+$followed_ids = [];
+if ($loggedInUserId) {
+    $stmt = $pdo->prepare("SELECT following_id FROM follows WHERE follower_id = ?");
+    $stmt->execute([$loggedInUserId]);
+    $followed_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+$activeTab = $_GET['tab'] ?? 'videos';
+
+if ($activeTab === 'saved') {
+    $videoStmt = $pdo->prepare("SELECT v.* FROM videos v JOIN saved_reels s ON v.id = s.video_id WHERE s.user_id = ? ORDER BY s.created_at DESC");
+} else {
+    $videoStmt = $pdo->prepare("SELECT * FROM videos WHERE user_id = ? ORDER BY created_at DESC");
+}
 $videoStmt->execute([$profileUserId]);
 $videos = $videoStmt->fetchAll();
 
@@ -30,12 +47,12 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile - ZYVA</title>
+    <title>Profile - Swipe Nest</title>
     
-    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css">
-    <link rel="stylesheet" href="../assets/css/globals.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/globals.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../assets/css/components.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/layout.css">
     
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -185,48 +202,57 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
 </head>
 <body>
     <div class="app-layout">
-        <!-- Top Navbar -->
-        <nav class="top-navbar">
-            <div class="container">
-                <a href="../index.php" class="navbar-brand">
-                    <i data-lucide="zap" class="text-accent"></i>
-                    <span>ZYVA</span>
+        <!-- Left Sidebar -->
+        <aside class="desktop-sidebar">
+            <div class="sidebar-header">
+                <a href="home.php" class="sidebar-brand">
+                    <img src="../assets/images/logo.svg" alt="Swipe Nest Logo" style="width: 28px; height: 28px;">
+                    <span style="font-family: var(--font-family-heading); font-weight: 700; letter-spacing: -0.02em;">Swipe Nest</span>
                 </a>
-                
-                <div class="navbar-actions">
-                    <button class="btn btn-icon btn-ghost" onclick="toggleTheme()">
-                        <i data-lucide="moon" class="theme-icon"></i>
-                    </button>
-                    <a href="upload.php" class="btn btn-primary">
-                        <i data-lucide="plus"></i>
-                        <span>Upload</span>
-                    </a>
-                </div>
             </div>
-        </nav>
+            
+            <nav class="sidebar-nav">
+                <a href="home.php" class="sidebar-link">
+                    <i data-lucide="home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="search.php" class="sidebar-link">
+                    <i data-lucide="search"></i>
+                    <span>Search</span>
+                </a>
+                <a href="reels.php" class="sidebar-link">
+                    <i data-lucide="play-circle"></i>
+                    <span>Reels</span>
+                </a>
+                <a href="upload.php" class="sidebar-link">
+                    <i data-lucide="plus-square"></i>
+                    <span>Create</span>
+                </a>
+                <a href="profile.php" class="sidebar-link active">
+                    <i data-lucide="user"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="settings.php" class="sidebar-link">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="profile.php" class="sidebar-user">
+                    <img src="<?= htmlspecialchars($sessionAvatar) ?>" alt="Profile">
+                    <span><?= htmlspecialchars($username) ?></span>
+                </a>
+                <a href="logout.php" class="sidebar-link" style="color: var(--color-danger); margin-top: 8px;">
+                    <i data-lucide="log-out"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
 
-        <div class="main-wrapper">
-            <!-- Left Sidebar -->
-            <aside class="left-sidebar">
-                <nav class="sidebar-nav">
-                    <a href="home.php" class="sidebar-link">
-                        <i data-lucide="home"></i>
-                        <span>For You</span>
-                    </a>
-                    <a href="search.php" class="sidebar-link">
-                        <i data-lucide="compass"></i>
-                        <span>Explore</span>
-                    </a>
-                    <a href="profile.php" class="sidebar-link active">
-                        <i data-lucide="user"></i>
-                        <span>Profile</span>
-                    </a>
-                </nav>
-            </aside>
-
-            <!-- Main Content -->
-            <main class="w-full pb-10">
-                
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="main-content-inner">
                 <!-- Banner & Profile Info -->
                 <div class="profile-banner"></div>
                 
@@ -245,7 +271,10 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
                                 Edit Profile
                             </a>
                             <?php else: ?>
-                            <button class="btn btn-primary">Follow</button>
+                            <?php $isFollowing = in_array($profileUserId, $followed_ids); ?>
+                            <button class="btn <?= $isFollowing ? 'btn-secondary' : 'btn-primary' ?>" onclick="toggleFollow(<?= $profileUserId ?>, this)">
+                                <?= $isFollowing ? 'Following' : 'Follow' ?>
+                            </button>
                             <?php endif; ?>
                         </div>
                         
@@ -270,10 +299,8 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
 
                 <!-- Tabs -->
                 <div class="profile-tabs">
-                    <div class="profile-tab active">Videos</div>
-                    <div class="profile-tab">Liked</div>
-                    <div class="profile-tab">Collections</div>
-                    <div class="profile-tab"><i data-lucide="lock" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i> Private</div>
+                    <a href="?tab=videos" class="profile-tab <?= $activeTab === 'videos' ? 'active' : '' ?>" style="text-decoration:none; color:inherit;">Videos</a>
+                    <a href="?tab=saved" class="profile-tab <?= $activeTab === 'saved' ? 'active' : '' ?>" style="text-decoration:none; color:inherit;">Saved</a>
                 </div>
 
                 <!-- Video Grid -->
@@ -289,13 +316,38 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
                     
                     <?php if(empty($videos)): ?>
                     <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--color-text-secondary);">
-                        <p>No videos uploaded yet.</p>
+                        <p>No videos found.</p>
                     </div>
                     <?php endif; ?>
                 </div>
 
-            </main>
-        </div>
+            </div> <!-- /main-content-inner -->
+        </main>
     </div>
+
+    <script>
+        async function toggleFollow(userId, btnEl) {
+            try {
+                const formData = new FormData();
+                formData.append('action', 'toggle_follow');
+                formData.append('following_id', userId);
+                
+                const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.success) {
+                    if (data.status === 'followed') {
+                        btnEl.textContent = 'Following';
+                        btnEl.classList.remove('btn-primary');
+                        btnEl.classList.add('btn-secondary');
+                    } else {
+                        btnEl.textContent = 'Follow';
+                        btnEl.classList.remove('btn-secondary');
+                        btnEl.classList.add('btn-primary');
+                    }
+                }
+            } catch(e) { console.error('Follow failed', e); }
+        }
+    </script>
 </body>
 </html>

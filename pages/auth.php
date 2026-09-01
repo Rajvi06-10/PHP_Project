@@ -1,4 +1,11 @@
 <?php
+session_start();
+
+if (isset($_SESSION['user_id'])) {
+    header("Location: home.php");
+    exit;
+}
+
 require_once '../config/db.php';
 
 $error = '';
@@ -10,8 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if ($action === 'login') {
-        $stmt = $pdo->prepare("SELECT id, username, password_hash as password, avatar_url as avatar FROM users WHERE email = ?");
-        $stmt->execute([$email]);
+        $login_username = $_POST['username'] ?? '';
+        $stmt = $pdo->prepare("SELECT id, username, password_hash as password, avatar_url as avatar FROM users WHERE username = ?");
+        $stmt->execute([$login_username]);
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {
@@ -21,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: home.php");
             exit;
         } else {
-            $error = "Invalid email or password.";
+            $error = "Invalid username or password.";
         }
     } elseif ($action === 'signup') {
         $username = $_POST['username'] ?? '';
@@ -30,7 +38,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
             $stmt->execute([$username, $email, $hash]);
-            $success = "Account created! You can now login.";
+            
+            // Auto login after signup
+            $newUserId = $pdo->lastInsertId();
+            $_SESSION['user_id'] = $newUserId;
+            $_SESSION['username'] = $username;
+            $_SESSION['avatar'] = 'https://i.pravatar.cc/150?img=11'; // Default
+            
+            header("Location: home.php");
+            exit;
+            
         } catch (\PDOException $e) {
             if ($e->getCode() == 23000) {
                 $error = "Username or email already exists.";
@@ -46,11 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auth - ZYVA</title>
-    <link rel="stylesheet" href="../assets/css/variables.css">
+    <title>Auth - Swipe Nest</title>
+    <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css">
-    <link rel="stylesheet" href="../assets/css/globals.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/globals.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../assets/css/components.css?v=<?= time() ?>">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .auth-container {
@@ -92,12 +109,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="auth-container">
         <div class="auth-card">
-            <div class="text-center mb-6">
-                <a href="../index.php" class="inline-flex items-center gap-2 mb-4">
-                    <i data-lucide="zap" class="text-accent"></i>
-                    <span class="font-bold text-xl">ZYVA</span>
-                </a>
-                <h2 class="h4">Welcome Back</h2>
+            <div class="text-center mb-8" style="display:flex; flex-direction:column; align-items:center; gap:var(--spacing-3);">
+                <img src="../assets/images/logo.svg" alt="Swipe Nest Logo" style="width: 48px; height: 48px;">
+                <h1 style="font-family: var(--font-family-heading); font-size: 2rem; font-weight: 700; margin: 0; letter-spacing: -0.02em;">Swipe Nest</h1>
+                <p style="color: var(--color-text-secondary); font-size: var(--text-sm); max-width: 280px; margin: 0;">Your personalized content home. Swipe to explore.</p>
             </div>
             
             <?php if ($error): ?>
@@ -119,8 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" id="login-form" class="auth-form active">
                 <input type="hidden" name="action" value="login">
                 <div class="input-group">
-                    <label class="input-label">Email</label>
-                    <input type="email" name="email" class="input-field" required>
+                    <label class="input-label">Username</label>
+                    <input type="text" name="username" class="input-field" required>
                 </div>
                 <div class="input-group">
                     <label class="input-label">Password</label>

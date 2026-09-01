@@ -2,6 +2,9 @@
 session_start();
 require_once '../config/db.php';
 
+$sessionUsername = $_SESSION['username'] ?? 'User';
+$sessionAvatar = isset($_SESSION['avatar']) && $_SESSION['avatar'] ? (strpos($_SESSION['avatar'], 'http') === 0 ? $_SESSION['avatar'] : '../' . $_SESSION['avatar']) : 'https://i.pravatar.cc/150?img=11';
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth.php");
     exit;
@@ -12,7 +15,7 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['update_profile'])) {
+    if (isset($_POST['save_profile'])) {
         $username = $_POST['username'] ?? '';
         $bio = $_POST['bio'] ?? '';
         
@@ -77,12 +80,12 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - ZYVA</title>
+    <title>Settings - Swipe Nest</title>
     
-    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css">
-    <link rel="stylesheet" href="../assets/css/globals.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/globals.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../assets/css/components.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/layout.css">
     
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -230,54 +233,89 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
 </head>
 <body>
     <div class="app-layout">
-        <!-- Top Navbar -->
-        <nav class="top-navbar">
-            <div class="container">
-                <a href="../index.php" class="navbar-brand">
-                    <i data-lucide="zap" class="text-accent"></i>
-                    <span>ZYVA</span>
+        <!-- Left Sidebar -->
+        <aside class="desktop-sidebar">
+            <div class="sidebar-header">
+                <a href="home.php" class="sidebar-brand">
+                    <img src="../assets/images/logo.svg" alt="Swipe Nest Logo" style="width: 28px; height: 28px;">
+                    <span style="font-family: var(--font-family-heading); font-weight: 700; letter-spacing: -0.02em;">Swipe Nest</span>
                 </a>
-                
-                <div class="navbar-actions">
-                    <a href="profile.php">
-                        <img src="<?= htmlspecialchars($avatarSrc) ?>" alt="Profile" class="avatar">
-                    </a>
-                </div>
             </div>
-        </nav>
-
-        <div class="settings-layout w-full">
             
-            <!-- Settings Navigation -->
-            <aside class="settings-nav">
-                <div class="settings-nav-item active" data-target="profile">
+            <nav class="sidebar-nav">
+                <a href="home.php" class="sidebar-link">
+                    <i data-lucide="home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="search.php" class="sidebar-link">
+                    <i data-lucide="search"></i>
+                    <span>Search</span>
+                </a>
+                <a href="reels.php" class="sidebar-link">
+                    <i data-lucide="play-circle"></i>
+                    <span>Reels</span>
+                </a>
+                <a href="upload.php" class="sidebar-link">
+                    <i data-lucide="plus-square"></i>
+                    <span>Create</span>
+                </a>
+                <a href="profile.php" class="sidebar-link">
                     <i data-lucide="user"></i>
-                    Profile
-                </div>
-                <div class="settings-nav-item" data-target="appearance">
-                    <i data-lucide="palette"></i>
-                    Appearance
-                </div>
-                <div class="settings-nav-item" data-target="privacy">
-                    <i data-lucide="lock"></i>
-                    Privacy & Safety
-                </div>
-                <div class="settings-nav-item" data-target="notifications">
-                    <i data-lucide="bell"></i>
-                    Notifications
-                </div>
-                <div class="settings-nav-item" data-target="language">
-                    <i data-lucide="globe"></i>
-                    Language
-                </div>
-            </aside>
+                    <span>Profile</span>
+                </a>
+                <a href="settings.php" class="sidebar-link active">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="profile.php" class="sidebar-user">
+                    <img src="<?= htmlspecialchars($sessionAvatar) ?>" alt="Profile">
+                    <span><?= htmlspecialchars($sessionUsername) ?></span>
+                </a>
+                <a href="logout.php" class="sidebar-link" style="color: var(--color-danger); margin-top: 8px;">
+                    <i data-lucide="log-out"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
 
-            <!-- Settings Content -->
-            <main class="settings-content">
-                <h1 class="h3 mb-6">Settings</h1>
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="main-content-inner" style="max-width: 1000px;">
+            
+            <div class="settings-layout">
+                <!-- Settings Navigation -->
+                <aside class="settings-nav">
+                    <h1 class="h3 mb-6" style="padding-left: 16px;">Settings</h1>
+                    <div class="settings-nav-item active" data-target="profile">
+                        <i data-lucide="user"></i>
+                        Profile
+                    </div>
+                    <div class="settings-nav-item" data-target="appearance">
+                        <i data-lucide="palette"></i>
+                        Appearance
+                    </div>
+                    <div class="settings-nav-item" data-target="privacy">
+                        <i data-lucide="lock"></i>
+                        Privacy & Safety
+                    </div>
+                    <div class="settings-nav-item" data-target="notifications">
+                        <i data-lucide="bell"></i>
+                        Notifications
+                    </div>
+                    <div class="settings-nav-item" data-target="language">
+                        <i data-lucide="globe"></i>
+                        Language
+                    </div>
+                </aside>
 
-                <!-- Profile Section -->
-                <div id="section-profile" class="settings-panel">
+                <!-- Settings Content -->
+                <main class="settings-content">
+
+                    <!-- Profile Section -->
+                    <div id="section-profile" class="settings-panel">
                     <section class="settings-section">
                         <h2 class="settings-section-title">Edit Profile</h2>
                         <p class="settings-section-desc">Manage your public profile information.</p>
@@ -286,7 +324,6 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                         <?php if($error): ?><div style="color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 4px; margin-bottom: 15px;"><?= $error ?></div><?php endif; ?>
 
                         <form method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="update_profile" value="1">
                             <div class="flex items-center gap-6 mb-8">
                                 <img src="<?= htmlspecialchars($avatarSrc) ?>" alt="Avatar" class="avatar avatar-xl">
                                 <div class="flex flex-col gap-2">
@@ -301,7 +338,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                             <div class="input-group">
                                 <label class="input-label">Username</label>
                                 <input type="text" name="username" class="input-field" value="<?= htmlspecialchars($user['username']) ?>" required>
-                                <p class="text-xs text-tertiary mt-1">www.zyva.com/@<?= htmlspecialchars($user['username']) ?></p>
+                                <p class="text-xs text-tertiary mt-1">www.swipenest.com/@<?= htmlspecialchars($user['username']) ?></p>
                             </div>
 
                             <div class="input-group">
@@ -310,7 +347,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                             </div>
 
                             <div class="flex justify-end mt-6">
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                <button type="submit" name="save_profile" value="1" class="btn btn-primary">Save Changes</button>
                             </div>
                         </form>
                     </section>
@@ -336,7 +373,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                 <div id="section-appearance" class="settings-panel" style="display: none;">
                     <section class="settings-section">
                         <h2 class="settings-section-title">Appearance</h2>
-                        <p class="settings-section-desc">Customize how ZYVA looks on your device.</p>
+                        <p class="settings-section-desc">Customize how Swipe Nest looks on your device.</p>
 
                         <div class="setting-row">
                             <div>
@@ -433,9 +470,9 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                         });
                     });
                 </script>
-
-            </main>
-        </div>
+            </div> <!-- /settings-layout -->
+            </div> <!-- /main-content-inner -->
+        </main>
     </div>
 </body>
 </html>

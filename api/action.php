@@ -27,16 +27,16 @@ try {
         
         if ($exists) {
             $pdo->prepare("DELETE FROM likes WHERE user_id = ? AND video_id = ?")->execute([$user_id, $video_id]);
-            $is_liked = false;
+            $status = 'unliked';
         } else {
             $pdo->prepare("INSERT INTO likes (user_id, video_id) VALUES (?, ?)")->execute([$user_id, $video_id]);
-            $is_liked = true;
+            $status = 'liked';
         }
         
         $count = $pdo->prepare("SELECT COUNT(*) FROM likes WHERE video_id = ?");
         $count->execute([$video_id]);
         
-        echo json_encode(['success' => true, 'is_liked' => $is_liked, 'count' => $count->fetchColumn()]);
+        echo json_encode(['success' => true, 'status' => $status, 'new_count' => $count->fetchColumn()]);
         
     } elseif ($action === 'toggle_save') {
         $video_id = $_POST['video_id'] ?? 0;
@@ -47,16 +47,16 @@ try {
         
         if ($exists) {
             $pdo->prepare("DELETE FROM saved_reels WHERE user_id = ? AND video_id = ?")->execute([$user_id, $video_id]);
-            $is_saved = false;
+            $status = 'unsaved';
         } else {
             $pdo->prepare("INSERT INTO saved_reels (user_id, video_id) VALUES (?, ?)")->execute([$user_id, $video_id]);
-            $is_saved = true;
+            $status = 'saved';
         }
         
-        echo json_encode(['success' => true, 'is_saved' => $is_saved]);
+        echo json_encode(['success' => true, 'status' => $status]);
         
     } elseif ($action === 'toggle_follow') {
-        $following_id = $_POST['user_id'] ?? 0;
+        $following_id = $_POST['following_id'] ?? 0;
         
         if ($following_id == $user_id) {
             echo json_encode(['success' => false, 'message' => 'Cannot follow yourself']);
@@ -69,17 +69,17 @@ try {
         
         if ($exists) {
             $pdo->prepare("DELETE FROM follows WHERE follower_id = ? AND following_id = ?")->execute([$user_id, $following_id]);
-            $is_following = false;
+            $status = 'unfollowed';
         } else {
             $pdo->prepare("INSERT INTO follows (follower_id, following_id) VALUES (?, ?)")->execute([$user_id, $following_id]);
-            $is_following = true;
+            $status = 'followed';
         }
         
-        echo json_encode(['success' => true, 'is_following' => $is_following]);
+        echo json_encode(['success' => true, 'status' => $status]);
         
     } elseif ($action === 'add_comment') {
         $video_id = $_POST['video_id'] ?? 0;
-        $comment_text = trim($_POST['comment_text'] ?? '');
+        $comment_text = trim($_POST['content'] ?? '');
         
         if (empty($comment_text)) {
             echo json_encode(['success' => false, 'message' => 'Comment cannot be empty']);
