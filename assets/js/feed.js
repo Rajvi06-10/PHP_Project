@@ -158,8 +158,7 @@ function init2DSwipers(feed) {
             initialSlide:    savedInner,
             mousewheel: {
                 forceToAxis: true,
-                thresholdDelta: 50,
-                sensitivity: 1
+                releaseOnEdges: true
             },
             keyboard:        true,
             on: {
