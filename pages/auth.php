@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'login') {
         $login_identifier = trim($_POST['username'] ?? '');
-        $stmt = $pdo->prepare("SELECT id, username, password_hash as password, avatar_url as avatar FROM users WHERE username = ? OR email = ?");
+        $stmt = $pdo->prepare("SELECT id, username, password as password, avatar_url as avatar FROM users WHERE username = ? OR email = ?");
         $stmt->execute([$login_identifier, $login_identifier]);
         $user = $stmt->fetch();
 
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hash = password_hash($password, PASSWORD_DEFAULT);
         
         try {
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
             $stmt->execute([$username, $email, $hash]);
             
             // Auto login after signup
