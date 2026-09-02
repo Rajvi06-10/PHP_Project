@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -17,6 +16,7 @@ $username = $_SESSION['username'] ?? 'User';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swipe Nest - Scrolls</title>
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
     
     <!-- Design System CSS -->
     <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">

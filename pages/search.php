@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../config/db.php';
 
 $username = $_SESSION['username'] ?? 'User';
@@ -58,6 +57,7 @@ if (!empty($searchQuery)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search - Swipe Nest</title>
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
     
     <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css">
@@ -266,14 +266,19 @@ if (!empty($searchQuery)) {
     </div>
     <script>
         async function toggleFollow(userId, btnEl) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
             try {
                 const formData = new FormData();
                 formData.append('action', 'toggle_follow');
                 formData.append('following_id', userId);
-                
-                const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+
+                const res = await fetch('../api/action.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRF-Token': csrfToken }
+                });
                 const data = await res.json();
-                
+
                 if (data.success) {
                     if (data.status === 'followed') {
                         btnEl.textContent = 'Following';

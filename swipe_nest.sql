@@ -115,7 +115,7 @@ CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `username` varchar(50) NOT NULL,
   `email` varchar(150) NOT NULL,
-  `password` varchar(255) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
   `full_name` varchar(100) DEFAULT NULL,
   `bio` text DEFAULT NULL,
   `avatar_url` varchar(255) DEFAULT NULL,
@@ -301,6 +301,29 @@ ALTER TABLE `videos`
   ADD CONSTRAINT `videos_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `videos_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE;
 COMMIT;
+
+
+-- ─────────────────────────────────────────────────────────────────
+-- PASSWORD RESETS TABLE (added for secure token-based reset flow)
+-- ─────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `password_resets` (
+  `id`         int(11)     NOT NULL AUTO_INCREMENT,
+  `user_id`    int(11)     NOT NULL,
+  `token_hash` varchar(64) NOT NULL,
+  `expires_at` datetime    NOT NULL,
+  `used`       tinyint(1)  NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `token_hash` (`token_hash`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `pr_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────────────────────────
+-- MIGRATION: Rename password → password_hash (run once on existing DB)
+-- If importing this file fresh, the CREATE TABLE above already uses
+-- password_hash so you only need the ALTER on an existing installation.
+-- ─────────────────────────────────────────────────────────────────
+-- ALTER TABLE `users` CHANGE `password` `password_hash` VARCHAR(255) NOT NULL;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

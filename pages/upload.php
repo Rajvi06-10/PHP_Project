@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../config/db.php';
 
 $username = $_SESSION['username'] ?? 'User';
@@ -11,22 +10,30 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $message = '';
-$error = '';
+$error   = '';
 
 // Fetch categories from DB
-$cat_stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC");
+$cat_stmt  = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC");
 $categories = $cat_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $caption     = $_POST['caption'] ?? '';
-    $category_id = $_POST['category_id'] ?? 1;
-    $visibility  = $_POST['visibility'] ?? 'Public';
-    $hashtags_input = $_POST['hashtags'] ?? '';
+    // CSRF check
+    csrf_validate('redirect');
+
+    $caption        = trim($_POST['caption']   ?? '');
+    $category_id    = $_POST['category_id']    ?? 1;
+    $visibility     = $_POST['visibility']     ?? 'Public';
+    $hashtags_input = trim($_POST['hashtags']  ?? '');
+
+    // Whitelist visibility values
+    if (!in_array($visibility, ['Public', 'Private'])) {
+        $visibility = 'Public';
+    }
 
     // Handle custom category creation (fallback for non-JS)
     if ($category_id === 'new') {
         $new_category = trim($_POST['new_category'] ?? '');
-        if (!empty($new_category)) {
+        if (!empty($new_category) && strlen($new_category) <= 100) {
             $stmt = $pdo->prepare("SELECT id FROM categories WHERE LOWER(name) = LOWER(?)");
             $stmt->execute([$new_category]);
             $existing = $stmt->fetch();
@@ -42,57 +49,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    if (isset($_FILES['video_file']) && $_FILES['video_file']['error'] === UPLOAD_ERR_OK) {
-        $allowed = ['video/mp4', 'video/webm'];
-        if (in_array($_FILES['video_file']['type'], $allowed)) {
-            $ext      = pathinfo($_FILES['video_file']['name'], PATHINFO_EXTENSION);
-            $filename = uniqid() . '.' . $ext;
+    $category_id = (int)$category_id;
 
-            if (!is_dir('../uploads/videos')) {
-                mkdir('../uploads/videos', 0777, true);
-            }
+    // ── Video upload ─────────────────────────────────────────────
+    if (isset($_FILES['video_file'])) {
+        $file = $_FILES['video_file'];
 
-            $uploadPath = '../uploads/videos/' . $filename;
+        // 1. Check for PHP upload errors first
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $upload_errors = [
+                UPLOAD_ERR_INI_SIZE   => 'File is too large (exceeds server limit).',
+                UPLOAD_ERR_FORM_SIZE  => 'File is too large (exceeds form limit).',
+                UPLOAD_ERR_PARTIAL    => 'File was only partially uploaded.',
+                UPLOAD_ERR_NO_FILE    => 'Please select a video file.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder on the server.',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+                UPLOAD_ERR_EXTENSION  => 'A server extension stopped the upload.',
+            ];
+            $error = $upload_errors[$file['error']] ?? 'Unknown upload error (code ' . (int)$file['error'] . ').';
 
-            if (move_uploaded_file($_FILES['video_file']['tmp_name'], $uploadPath)) {
-                $stmt = $pdo->prepare("INSERT INTO videos (user_id, category_id, file_path, description, visibility) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$_SESSION['user_id'], $category_id, 'uploads/videos/' . $filename, $caption, $visibility]);
+        } else {
+            $maxBytes = 200 * 1024 * 1024; // 200 MB hard limit
 
-                $video_id = $pdo->lastInsertId();
+            // 2. Check file size
+            if ($file['size'] > $maxBytes) {
+                $error = 'Video must be smaller than 200 MB.';
+            } else {
+                // 3. Detect MIME via finfo — never trust $_FILES['type']
+                $finfo    = new finfo(FILEINFO_MIME_TYPE);
+                $realMime = $finfo->file($file['tmp_name']);
 
-                if (!empty($hashtags_input)) {
-                    $tags = array_map('trim', explode(',', $hashtags_input));
-                    foreach ($tags as $tag) {
-                        $tag = ltrim($tag, '#');
-                        if (!empty($tag)) {
-                            $tagStmt = $pdo->prepare("INSERT INTO hashtags (video_id, tag) VALUES (?, ?)");
-                            $tagStmt->execute([$video_id, $tag]);
+                $allowedMimes = [
+                    'video/mp4'  => 'mp4',
+                    'video/webm' => 'webm',
+                ];
+
+                if (!array_key_exists($realMime, $allowedMimes)) {
+                    $error = 'Invalid video type. Only MP4 and WebM are allowed.';
+                } else {
+                    // 4. Generate a safe, random filename — never use user-supplied name
+                    $ext        = $allowedMimes[$realMime];
+                    $filename   = bin2hex(random_bytes(16)) . '.' . $ext;
+                    $uploadDir  = '../uploads/videos/';
+                    $uploadPath = $uploadDir . $filename;
+
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
+                    }
+
+                    if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
+                        try {
+                            $stmt = $pdo->prepare(
+                                "INSERT INTO videos (user_id, category_id, file_path, description, visibility)
+                                 VALUES (?, ?, ?, ?, ?)"
+                            );
+                            $stmt->execute([
+                                $_SESSION['user_id'],
+                                $category_id,
+                                'uploads/videos/' . $filename,
+                                $caption,
+                                $visibility,
+                            ]);
+                            $video_id = $pdo->lastInsertId();
+
+                            // 5. Sanitise and store hashtags
+                            if (!empty($hashtags_input)) {
+                                $tags = array_slice(
+                                    array_map('trim', explode(',', $hashtags_input)),
+                                    0, 20 // max 20 tags
+                                );
+                                foreach ($tags as $tag) {
+                                    $tag = ltrim($tag, '#');
+                                    // Allow only alphanumeric and underscore, max 50 chars
+                                    $tag = preg_replace('/[^a-zA-Z0-9_\-]/', '', $tag);
+                                    $tag = substr($tag, 0, 50);
+                                    if (!empty($tag)) {
+                                        $pdo->prepare(
+                                            "INSERT INTO hashtags (video_id, tag) VALUES (?, ?)"
+                                        )->execute([$video_id, $tag]);
+                                    }
+                                }
+                            }
+
+                            header("Location: profile.php");
+                            exit;
+
+                        } catch (\PDOException $e) {
+                            // Remove the uploaded file if DB insert failed
+                            @unlink($uploadPath);
+                            error_log('[Swipe Nest] Upload DB error: ' . $e->getMessage());
+                            $error = 'Failed to save video. Please try again.';
                         }
+                    } else {
+                        $error = 'Failed to move uploaded file. Check directory permissions.';
                     }
                 }
-
-                header("Location: profile.php");
-                exit;
-            } else {
-                $error = "Failed to move uploaded file. Check directory permissions.";
             }
-        } else {
-            $error = "Invalid file type. Only MP4 and WebM are allowed.";
         }
     } else {
-        if (isset($_FILES['video_file']) && $_FILES['video_file']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $upload_errors = [
-                UPLOAD_ERR_INI_SIZE  => 'File is too large (exceeds upload_max_filesize in php.ini).',
-                UPLOAD_ERR_FORM_SIZE => 'File is too large.',
-                UPLOAD_ERR_PARTIAL   => 'File was only partially uploaded.',
-                UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder.',
-                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
-                UPLOAD_ERR_EXTENSION  => 'A PHP extension stopped the file upload.'
-            ];
-            $error = $upload_errors[$_FILES['video_file']['error']] ?? 'Unknown upload error.';
-        } else {
-            $error = "Please select a valid video file.";
-        }
+        $error = 'Please select a valid video file.';
     }
 }
 
@@ -107,6 +162,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload - Swipe Nest</title>
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
 
     <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css">
@@ -158,30 +214,18 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
             </div>
 
             <nav class="sidebar-nav">
-                <a href="home.php" class="sidebar-link">
-                    <i data-lucide="home"></i><span>Home</span>
-                </a>
-                <a href="search.php" class="sidebar-link">
-                    <i data-lucide="search"></i><span>Search</span>
-                </a>
-                <a href="scrolls.php" class="sidebar-link">
-                    <i data-lucide="layers"></i><span>Scrolls</span>
-                </a>
-                <a href="upload.php" class="sidebar-link active">
-                    <i data-lucide="plus-square"></i><span>Create</span>
-                </a>
-                <a href="profile.php" class="sidebar-link">
-                    <i data-lucide="user"></i><span>Profile</span>
-                </a>
-                <a href="settings.php" class="sidebar-link">
-                    <i data-lucide="settings"></i><span>Settings</span>
-                </a>
+                <a href="home.php" class="sidebar-link"><i data-lucide="home"></i><span>Home</span></a>
+                <a href="search.php" class="sidebar-link"><i data-lucide="search"></i><span>Search</span></a>
+                <a href="scrolls.php" class="sidebar-link"><i data-lucide="layers"></i><span>Scrolls</span></a>
+                <a href="upload.php" class="sidebar-link active"><i data-lucide="plus-square"></i><span>Create</span></a>
+                <a href="profile.php" class="sidebar-link"><i data-lucide="user"></i><span>Profile</span></a>
+                <a href="settings.php" class="sidebar-link"><i data-lucide="settings"></i><span>Settings</span></a>
             </nav>
 
             <div class="sidebar-footer">
                 <a href="profile.php" class="sidebar-user">
-                    <img src="<?= htmlspecialchars($sessionAvatar) ?>" alt="Profile">
-                    <span><?= htmlspecialchars($username) ?></span>
+                    <img src="<?= htmlspecialchars($sessionAvatar, ENT_QUOTES, 'UTF-8') ?>" alt="Profile">
+                    <span><?= htmlspecialchars($username, ENT_QUOTES, 'UTF-8') ?></span>
                 </a>
                 <a href="logout.php" class="sidebar-link" style="color: var(--color-danger); margin-top: 8px;">
                     <i data-lucide="log-out"></i><span>Logout</span>
@@ -196,15 +240,20 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                 <h1 class="h3 mb-2">Upload Video</h1>
                 <p class="text-secondary mb-8">Post a video to your account</p>
 
-                <?php if($message): ?>
-                    <div style="color:#10b981;background:rgba(16,185,129,0.1);padding:10px;border-radius:4px;margin-bottom:15px;"><?= $message ?></div>
+                <?php if ($message): ?>
+                    <div style="color:#10b981;background:rgba(16,185,129,0.1);padding:10px;border-radius:4px;margin-bottom:15px;">
+                        <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
+                    </div>
                 <?php endif; ?>
-                <?php if($error): ?>
-                    <div style="color:#ef4444;background:rgba(239,68,68,0.1);padding:10px;border-radius:4px;margin-bottom:15px;"><?= $error ?></div>
+                <?php if ($error): ?>
+                    <div style="color:#ef4444;background:rgba(239,68,68,0.1);padding:10px;border-radius:4px;margin-bottom:15px;">
+                        <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
+                    </div>
                 <?php endif; ?>
 
                 <div class="card p-6" style="padding: var(--spacing-6);">
                     <form method="POST" enctype="multipart/form-data" class="form-grid">
+                        <?= csrf_field() ?>
 
                         <!-- Left: Upload Area -->
                         <div>
@@ -213,7 +262,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                                        style="position:absolute;width:100%;height:100%;opacity:0;cursor:pointer;left:0;top:0;z-index:10;">
                                 <i data-lucide="upload-cloud" style="width:64px;height:64px;color:var(--color-primary);margin-bottom:15px;"></i>
                                 <h3 class="font-semibold mb-2">Select video to upload</h3>
-                                <p class="text-sm text-secondary mb-6">MP4 or WebM format</p>
+                                <p class="text-sm text-secondary mb-6">MP4 or WebM format · Max 200 MB</p>
                                 <button type="button" class="btn btn-primary pointer-events-none">Select file</button>
                             </div>
                             <div id="file-name-display" class="mt-4 text-center text-sm text-primary"></div>
@@ -223,13 +272,13 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                         <div>
                             <div class="input-group mb-4">
                                 <label class="input-label">Caption</label>
-                                <textarea name="caption" class="input-field" rows="4" placeholder="Describe your video..."></textarea>
+                                <textarea name="caption" class="input-field" rows="4" placeholder="Describe your video..." maxlength="2000"></textarea>
                             </div>
 
                             <div class="input-group mb-4">
                                 <label class="input-label">Hashtags</label>
-                                <input type="text" name="hashtags" class="input-field" placeholder="e.g. funny, tech, learning">
-                                <p class="text-xs text-tertiary mt-1">Separate with commas.</p>
+                                <input type="text" name="hashtags" class="input-field" placeholder="e.g. funny, tech, learning" maxlength="500">
+                                <p class="text-xs text-tertiary mt-1">Separate with commas. Max 20 tags, letters/numbers only.</p>
                             </div>
 
                             <!-- Category -->
@@ -238,7 +287,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                                 <div style="position: relative;">
                                     <select name="category_id" id="categorySelect" class="input-field" style="appearance: none;">
                                         <?php foreach ($categories as $cat): ?>
-                                            <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                                            <option value="<?= (int)$cat['id'] ?>"><?= htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8') ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                     <i data-lucide="chevron-down" style="position:absolute;right:12px;top:12px;color:var(--color-text-secondary);width:18px;height:18px;pointer-events:none;"></i>
@@ -259,7 +308,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                                                style="flex:1;padding:8px 12px;border-radius:var(--radius-md);
                                                       border:1px solid var(--color-border);
                                                       background:var(--color-bg-tertiary);
-                                                      color:var(--color-text-primary);font-size:13px;">
+                                                      color:var(--color-text-primary);font-size:13px;" maxlength="100">
                                         <button type="button" id="saveCatBtn"
                                                 style="padding:8px 16px;background:var(--color-primary);
                                                        color:white;border:none;border-radius:var(--radius-md);
@@ -304,6 +353,7 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
     <script>
         document.getElementById('video_file').addEventListener('change', function() {
             if (this.files && this.files[0]) {
+                // Use textContent — never innerHTML — to avoid XSS from filename
                 document.getElementById('file-name-display').textContent = 'Selected: ' + this.files[0].name;
             }
         });
@@ -342,11 +392,20 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                 fd.append('action', 'add_category');
                 fd.append('name', name);
 
-                const res  = await fetch('../api/category.php', { method: 'POST', body: fd });
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+                const res  = await fetch('../api/category.php', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-CSRF-Token': csrfToken }
+                });
                 const data = await res.json();
 
                 if (data.success) {
-                    const opt = new Option(data.category.name, data.category.id, true, true);
+                    // Use textContent to safely add the category name
+                    const opt = document.createElement('option');
+                    opt.value    = data.category.id;
+                    opt.selected = true;
+                    opt.textContent = data.category.name;
                     catSelect.add(opt);
                     newInput.value       = '';
                     addBox.style.display = 'none';

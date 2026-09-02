@@ -1,59 +1,90 @@
 <?php
-session_start();
+require_once '../config/db.php';   // starts session, loads csrf helper
 
 if (isset($_SESSION['user_id'])) {
     header("Location: home.php");
     exit;
 }
 
-require_once '../config/db.php';
-
-$error = '';
+$error   = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-    $email = $_POST['email'] ?? '';
+    // CSRF check — validate on all form posts
+    csrf_validate('redirect');
+
+    $action   = $_POST['action'] ?? '';
     $password = $_POST['password'] ?? '';
 
     if ($action === 'login') {
         $login_identifier = trim($_POST['username'] ?? '');
-        $stmt = $pdo->prepare("SELECT id, username, password_hash as password, avatar_url as avatar FROM users WHERE username = ? OR email = ?");
-        $stmt->execute([$login_identifier, $login_identifier]);
-        $user = $stmt->fetch();
 
-        if ($user && password_verify($password, $user['password'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['avatar'] = $user['avatar'];
-            header("Location: home.php");
-            exit;
+        if (empty($login_identifier) || empty($password)) {
+            $error = 'Username/email and password are required.';
         } else {
-            $error = "Invalid username or password.";
+            $stmt = $pdo->prepare(
+                "SELECT id, username, password_hash, avatar_url
+                 FROM users
+                 WHERE username = ? OR email = ?
+                 LIMIT 1"
+            );
+            $stmt->execute([$login_identifier, $login_identifier]);
+            $user = $stmt->fetch();
+
+            if ($user && password_verify($password, $user['password_hash'])) {
+                // Regenerate session ID after login to prevent session fixation
+                session_regenerate_id(true);
+
+                $_SESSION['user_id']  = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['avatar']   = $user['avatar_url'];
+                header("Location: home.php");
+                exit;
+            } else {
+                // Generic message — do not reveal which field was wrong
+                $error = 'Invalid username or password.';
+            }
         }
+
     } elseif ($action === 'signup') {
         $username = trim($_POST['username'] ?? '');
-        $email = trim($_POST['email'] ?? '');
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        
-        try {
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
-            $stmt->execute([$username, $email, $hash]);
-            
-            // Auto login after signup
-            $newUserId = $pdo->lastInsertId();
-            $_SESSION['user_id'] = $newUserId;
-            $_SESSION['username'] = $username;
-            $_SESSION['avatar'] = 'https://i.pravatar.cc/150?img=11'; // Default
-            
-            header("Location: home.php");
-            exit;
-            
-        } catch (\PDOException $e) {
-            if ($e->getCode() == 23000) {
-                $error = "Username or email already exists.";
-            } else {
-                $error = "An error occurred during registration.";
+        $email    = trim($_POST['email']    ?? '');
+
+        if (empty($username) || empty($email) || empty($password)) {
+            $error = 'All fields are required.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Please enter a valid email address.';
+        } elseif (strlen($password) < 6) {
+            $error = 'Password must be at least 6 characters.';
+        } elseif (strlen($username) > 50) {
+            $error = 'Username must be 50 characters or fewer.';
+        } else {
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+
+            try {
+                $stmt = $pdo->prepare(
+                    "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)"
+                );
+                $stmt->execute([$username, $email, $hash]);
+                $newUserId = $pdo->lastInsertId();
+
+                // Regenerate session ID after login
+                session_regenerate_id(true);
+
+                $_SESSION['user_id']  = $newUserId;
+                $_SESSION['username'] = $username;
+                $_SESSION['avatar']   = null;
+
+                header("Location: home.php");
+                exit;
+
+            } catch (\PDOException $e) {
+                if ($e->getCode() == 23000) {
+                    $error = 'Username or email already exists.';
+                } else {
+                    error_log('[Swipe Nest] Signup error: ' . $e->getMessage());
+                    $error = 'An error occurred during registration. Please try again.';
+                }
             }
         }
     }
@@ -101,15 +132,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transition: color var(--transition-fast);
             border-bottom: 2px solid var(--color-border);
         }
-        .auth-tab:hover {
-            color: var(--color-text-primary);
-        }
+        .auth-tab:hover { color: var(--color-text-primary); }
         .auth-tab.active {
             color: var(--color-primary);
             border-bottom: 2px solid var(--color-primary);
         }
-        .auth-form { 
-            display: none; 
+        .auth-form {
+            display: none;
             animation: fadeIn var(--transition-normal) forwards;
         }
         .auth-form.active { display: block; }
@@ -126,15 +155,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h1 style="font-family: var(--font-family-heading); font-size: 2rem; font-weight: 700; margin: 0; letter-spacing: -0.02em;">Swipe Nest</h1>
                 <p style="color: var(--color-text-secondary); font-size: var(--text-sm); max-width: 280px; margin: 0;">Your personalized content home. Swipe to explore.</p>
             </div>
-            
+
             <?php if ($error): ?>
                 <div style="color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
-                    <?= htmlspecialchars($error) ?>
+                    <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
                 </div>
             <?php endif; ?>
             <?php if ($success): ?>
                 <div style="color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 10px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
-                    <?= htmlspecialchars($success) ?>
+                    <?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?>
                 </div>
             <?php endif; ?>
 
@@ -143,8 +172,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="auth-tab" onclick="switchTab('signup')">Sign Up</div>
             </div>
 
+            <!-- Login Form -->
             <form method="POST" id="login-form" class="auth-form active" autocomplete="off">
                 <input type="hidden" name="action" value="login">
+                <?= csrf_field() ?>
                 <div class="input-group">
                     <label class="input-label">Username or Email</label>
                     <input type="text" name="username" class="input-field" required autocomplete="off">
@@ -154,13 +185,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="password" name="password" class="input-field" required autocomplete="new-password">
                 </div>
                 <button type="submit" class="btn btn-primary w-full justify-center">Login</button>
+                <div style="text-align:center; margin-top: 12px; font-size: var(--text-sm);">
+                    <a href="forgot_password.php" style="color: var(--color-primary); text-decoration: none;">Forgot your password?</a>
+                </div>
             </form>
 
+            <!-- Signup Form -->
             <form method="POST" id="signup-form" class="auth-form" autocomplete="off">
                 <input type="hidden" name="action" value="signup">
+                <?= csrf_field() ?>
                 <div class="input-group">
                     <label class="input-label">Username</label>
-                    <input type="text" name="username" class="input-field" required autocomplete="off">
+                    <input type="text" name="username" class="input-field" required autocomplete="off" maxlength="50">
                 </div>
                 <div class="input-group">
                     <label class="input-label">Email</label>
@@ -179,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function switchTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-            if(tab === 'login') {
+            if (tab === 'login') {
                 document.querySelectorAll('.auth-tab')[0].classList.add('active');
                 document.getElementById('login-form').classList.add('active');
             } else {

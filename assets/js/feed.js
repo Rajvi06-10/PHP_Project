@@ -5,6 +5,10 @@
  * Inner swiper  → VERTICAL    (swipe up  / down     = change VIDEO inside category)
  *
  * Category pills always reflect the currently visible category.
+ *
+ * NOTE: User-generated content (username, description, hashtags, category_name)
+ * is escaped server-side in api/feed.php with htmlspecialchars().
+ * Card elements are built with textContent / setAttribute to prevent XSS.
  */
 
 let globalFeed         = [];
@@ -32,7 +36,7 @@ async function fetchFeedData() {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   DOM builder
+   DOM builder — all user content set via textContent (XSS-safe)
 ───────────────────────────────────────────────────────────────── */
 function render2DCarousel(feed) {
     const wrapper = document.getElementById('videoCarouselWrapper');
@@ -54,12 +58,11 @@ function render2DCarousel(feed) {
         innerWrapper.className = 'swiper-wrapper';
 
         if (!category.videos || category.videos.length === 0) {
-            innerWrapper.innerHTML = `
-                <div class="swiper-slide"
-                     style="display:flex;align-items:center;justify-content:center;
-                            height:100%;color:rgba(255,255,255,0.7);font-weight:500;">
-                    No videos in ${category.category_name}
-                </div>`;
+            const emptySlide = document.createElement('div');
+            emptySlide.className = 'swiper-slide';
+            emptySlide.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.7);font-weight:500;';
+            emptySlide.textContent = 'No videos in ' + category.category_name;
+            innerWrapper.appendChild(emptySlide);
         } else {
             category.videos.forEach((video, vidIndex) => {
                 const vidSlide = document.createElement('div');
@@ -69,59 +72,141 @@ function render2DCarousel(feed) {
                     ? (video.avatar_url.startsWith('http') ? video.avatar_url : '../' + video.avatar_url)
                     : 'https://i.pravatar.cc/150?img=11';
 
-                /* Vertical progress dots (show position within category) */
-                const dotsHtml = category.videos.map((_, i) =>
-                    `<span class="v-dot${i === vidIndex ? ' active' : ''}"></span>`
-                ).join('');
+                // ── video-card container ────────────────────────
+                const card = document.createElement('div');
+                card.className = 'video-card';
 
-                vidSlide.innerHTML = `
-                    <div class="video-card">
-                        <video class="video-thumbnail"
-                               src="../${video.file_path}"
-                               loop playsinline preload="metadata"
-                               onclick="handleVideoTap(this, ${video.id})"></video>
+                // video element
+                const vid = document.createElement('video');
+                vid.className   = 'video-thumbnail';
+                vid.src         = '../' + video.file_path;  // file_path is internal, not user content
+                vid.loop        = true;
+                vid.playsInline = true;
+                vid.preload     = 'metadata';
+                vid.onclick     = () => handleVideoTap(vid, video.id);
+                card.appendChild(vid);
 
-                        <!-- category badge -->
-                        <div class="card-top-left">${category.category_name}</div>
+                // category badge (top-left)
+                const badge = document.createElement('div');
+                badge.className   = 'card-top-left';
+                badge.textContent = category.category_name; // htmlspecialchars'd by server
+                card.appendChild(badge);
 
-                        <!-- vertical position dots (right edge) -->
-                        <div class="vertical-dots" id="vdots-${catIndex}">${dotsHtml}</div>
+                // vertical progress dots (right edge)
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'vertical-dots';
+                dotsContainer.id        = `vdots-${catIndex}`;
+                category.videos.forEach((_, i) => {
+                    const dot = document.createElement('span');
+                    dot.className = 'v-dot' + (i === vidIndex ? ' active' : '');
+                    dotsContainer.appendChild(dot);
+                });
+                card.appendChild(dotsContainer);
 
-                        <!-- more options -->
-                        <div class="card-top-right">
-                            <i data-lucide="more-vertical"></i>
-                        </div>
+                // more options (top-right)
+                const moreBtn = document.createElement('div');
+                moreBtn.className = 'card-top-right';
+                const moreIcon = document.createElement('i');
+                moreIcon.setAttribute('data-lucide', 'more-vertical');
+                moreBtn.appendChild(moreIcon);
+                card.appendChild(moreBtn);
 
-                        <!-- action buttons -->
-                        <div class="card-actions-right">
-                            <div class="card-action like-btn-${video.id}" onclick="toggleLike(${video.id}, this)">
-                                <i data-lucide="heart" ${video.is_liked ? 'fill="#ff3040" style="color: #ff3040;" class="active"' : ''}></i>
-                                <span>${video.like_count > 1000 ? (video.like_count / 1000).toFixed(1) + 'K' : video.like_count}</span>
-                            </div>
-                            <div class="card-action" onclick="addComment(${video.id}, this)">
-                                <i data-lucide="message-circle"></i>
-                                <span>${video.comment_count}</span>
-                            </div>
-                            <div class="card-action" onclick="shareVideo('../${video.file_path}')">
-                                <i data-lucide="send"></i>
-                                <span>Share</span>
-                            </div>
-                            <div class="card-action save-btn-${video.id}" onclick="toggleSave(${video.id}, this)">
-                                <i data-lucide="bookmark" ${video.is_saved ? 'fill="white" class="active"' : ''}></i>
-                            </div>
-                        </div>
+                // action buttons (right side)
+                const actions = document.createElement('div');
+                actions.className = 'card-actions-right';
 
-                        <!-- bottom info -->
-                        <div class="card-bottom-info">
-                            <div class="card-user">
-                                <img src="${avatarUrl}" alt="${video.username}">
-                                <span>${video.username}</span>
-                            </div>
-                            <div class="card-caption">${video.description || ''}</div>
-                            <div class="card-tags">${video.hashtags || '#trending'}</div>
-                        </div>
-                    </div>
-                `;
+                // Like button
+                const likeDiv = document.createElement('div');
+                likeDiv.className = `card-action like-btn-${video.id}`;
+                likeDiv.onclick   = () => toggleLike(video.id, likeDiv);
+                const likeIcon = document.createElement('i');
+                likeIcon.setAttribute('data-lucide', 'heart');
+                if (video.is_liked) {
+                    likeIcon.setAttribute('fill', '#ff3040');
+                    likeIcon.style.color = '#ff3040';
+                    likeIcon.classList.add('active');
+                }
+                const likeCount = document.createElement('span');
+                likeCount.textContent = video.like_count > 1000
+                    ? (video.like_count / 1000).toFixed(1) + 'K'
+                    : video.like_count;
+                likeDiv.appendChild(likeIcon);
+                likeDiv.appendChild(likeCount);
+                actions.appendChild(likeDiv);
+
+                // Comment button
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'card-action';
+                commentDiv.onclick   = () => addComment(video.id, commentDiv);
+                const commentIcon = document.createElement('i');
+                commentIcon.setAttribute('data-lucide', 'message-circle');
+                const commentCount = document.createElement('span');
+                commentCount.textContent = video.comment_count;
+                commentDiv.appendChild(commentIcon);
+                commentDiv.appendChild(commentCount);
+                actions.appendChild(commentDiv);
+
+                // Share button
+                const shareDiv = document.createElement('div');
+                shareDiv.className = 'card-action';
+                shareDiv.onclick   = () => shareVideo('../' + video.file_path);
+                const shareIcon = document.createElement('i');
+                shareIcon.setAttribute('data-lucide', 'send');
+                const shareLabel = document.createElement('span');
+                shareLabel.textContent = 'Share';
+                shareDiv.appendChild(shareIcon);
+                shareDiv.appendChild(shareLabel);
+                actions.appendChild(shareDiv);
+
+                // Save button
+                const saveDiv = document.createElement('div');
+                saveDiv.className = `card-action save-btn-${video.id}`;
+                saveDiv.onclick   = () => toggleSave(video.id, saveDiv);
+                const saveIcon = document.createElement('i');
+                saveIcon.setAttribute('data-lucide', 'bookmark');
+                if (video.is_saved) {
+                    saveIcon.setAttribute('fill', 'white');
+                    saveIcon.classList.add('active');
+                }
+                saveDiv.appendChild(saveIcon);
+                actions.appendChild(saveDiv);
+
+                card.appendChild(actions);
+
+                // bottom info bar
+                const bottomInfo = document.createElement('div');
+                bottomInfo.className = 'card-bottom-info';
+
+                const userRow = document.createElement('div');
+                userRow.className = 'card-user';
+
+                const userImg = document.createElement('img');
+                userImg.src = avatarUrl;
+                userImg.alt = video.username; // htmlspecialchars'd by server
+
+                const userSpan = document.createElement('span');
+                userSpan.textContent = video.username; // htmlspecialchars'd by server
+
+                userRow.appendChild(userImg);
+                userRow.appendChild(userSpan);
+
+                const caption = document.createElement('div');
+                caption.className   = 'card-caption';
+                caption.textContent = video.description || ''; // htmlspecialchars'd by server
+
+                const tags = document.createElement('div');
+                tags.className   = 'card-tags';
+                // hashtags is an array of htmlspecialchars'd strings from the server
+                tags.textContent = Array.isArray(video.hashtags) && video.hashtags.length > 0
+                    ? video.hashtags.map(t => '#' + t).join(' ')
+                    : '';
+
+                bottomInfo.appendChild(userRow);
+                bottomInfo.appendChild(caption);
+                bottomInfo.appendChild(tags);
+                card.appendChild(bottomInfo);
+
+                vidSlide.appendChild(card);
                 innerWrapper.appendChild(vidSlide);
             });
         }
@@ -136,7 +221,7 @@ function render2DCarousel(feed) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   Swiper initialisation
+   Swiper initialisation — UNCHANGED (horizontal + vertical)
 ───────────────────────────────────────────────────────────────── */
 function init2DSwipers(feed) {
     innerSwipers = [];
@@ -154,18 +239,17 @@ function init2DSwipers(feed) {
         const sw = new Swiper(`.swiper-inner-${index}`, {
             direction:       'vertical',
             nested:          true,
-            // Instagram-like physics
             initialSlide:    savedInner,
             touchRatio:      1.2,
             shortSwipes:     true,
             longSwipesRatio: 0.1,
             mousewheel: {
-                forceToAxis: true,
+                forceToAxis:    true,
                 releaseOnEdges: true,
-                thresholdTime: 250 // faster mousewheel snapping
+                thresholdTime:  250
             },
-            speed: 300, // Snappy animation
-            keyboard:        true,
+            speed:    300,
+            keyboard: true,
             on: {
                 slideChangeTransitionEnd() {
                     sessionStorage.setItem(stateKey, this.activeIndex);
@@ -180,7 +264,7 @@ function init2DSwipers(feed) {
 
     /* ── Outer swiper — HORIZONTAL (left/right for categories) ──── */
     window.outerSwiper = new Swiper('#outerSwiper', {
-        direction:       'horizontal',  // ← categories scroll horizontally
+        direction:       'horizontal',
         resistanceRatio: 0,
         initialSlide:    Math.min(savedOuter, Math.max(feed.length - 1, 0)),
         keyboard:        true,
@@ -217,7 +301,7 @@ function handlePlayback() {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   Vertical progress dots  (show which video within the category)
+   Vertical progress dots
 ───────────────────────────────────────────────────────────────── */
 function updateVerticalDots(catIndex, activeVidIndex) {
     const el = document.getElementById(`vdots-${catIndex}`);
@@ -237,9 +321,9 @@ function renderCategoryPills(feed) {
 
     feed.forEach((cat, index) => {
         const pill = document.createElement('div');
-        pill.className = 'category-pill';
+        pill.className   = 'category-pill';
+        pill.textContent = cat.category_name; // htmlspecialchars'd by server
         if (index === 0) pill.classList.add('active');
-        pill.textContent = cat.category_name;
 
         pill.addEventListener('click', () => {
             window.outerSwiper?.slideTo(index);
@@ -259,4 +343,4 @@ function syncCategoryPills(activeIndex) {
     });
 }
 
-/* Interaction handlers moved to main.js */
+/* Interaction handlers are in main.js */

@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../config/db.php';
 
 $username = $_SESSION['username'] ?? 'User';
@@ -48,6 +47,7 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Swipe Nest</title>
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
     
     <link rel="stylesheet" href="../assets/css/variables.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../assets/css/reset.css">
@@ -333,14 +333,19 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
     <script>
         async function deleteVideo(videoId) {
             if (!confirm("Are you sure you want to delete this reel?")) return;
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
             try {
                 const formData = new FormData();
                 formData.append('action', 'delete_video');
                 formData.append('video_id', videoId);
-                
-                const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+
+                const res = await fetch('../api/action.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRF-Token': csrfToken }
+                });
                 const data = await res.json();
-                
+
                 if (data.success) {
                     const card = document.getElementById('video-card-' + videoId);
                     if (card) {
@@ -355,14 +360,19 @@ $isOwner = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profileUserI
         }
 
         async function toggleFollow(userId, btnEl) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
             try {
                 const formData = new FormData();
                 formData.append('action', 'toggle_follow');
                 formData.append('following_id', userId);
-                
-                const res = await fetch('../api/action.php', { method: 'POST', body: formData });
+
+                const res = await fetch('../api/action.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRF-Token': csrfToken }
+                });
                 const data = await res.json();
-                
+
                 if (data.success) {
                     if (data.status === 'followed') {
                         btnEl.textContent = 'Following';
