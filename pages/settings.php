@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$stmt = $pdo->prepare("SELECT username, bio, avatar_url FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT username, email, bio, avatar_url FROM users WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? $user['avatar_url'] : '../' . $user['avatar_url']) : 'https://i.pravatar.cc/150?img=11';
@@ -386,6 +386,12 @@ $avatarSrc = $user['avatar_url'] ? (strpos($user['avatar_url'], 'http') === 0 ? 
                                 <label class="input-label">Username</label>
                                 <input type="text" name="username" class="input-field" value="<?= htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8') ?>" required maxlength="50">
                                 <p class="text-xs text-tertiary mt-1">www.swipenest.com/@<?= htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8') ?></p>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Email</label>
+                                <input type="email" class="input-field" value="<?= htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8') ?>" disabled style="opacity:0.6;cursor:not-allowed;">
+                                <p class="text-xs text-tertiary mt-1">Email cannot be changed here.</p>
                             </div>
 
                             <div class="input-group">
