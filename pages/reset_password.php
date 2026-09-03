@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
 
             // Update the password
             $pdo->prepare(
-                "UPDATE users SET password_hash = ? WHERE id = ?"
+                "UPDATE users SET `password_hash` = ? WHERE id = ?"
             )->execute([$hash, $validToken['user_id']]);
 
             // Mark token as used (single-use)
