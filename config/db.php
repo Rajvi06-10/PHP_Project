@@ -9,7 +9,7 @@
  */
 
 // ── Development flag ─────────────────────────────────────────────
-define('IS_DEV', true);   // ← Change to false before deploying to production
+define('IS_DEV', false);   // ← Change to false before deploying to production
 
 // ── Session settings ─────────────────────────────────────────────
 if (session_status() === PHP_SESSION_NONE) {
@@ -29,10 +29,10 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // ── Database credentials ──────────────────────────────────────────
-$host    = '127.0.0.1';
-$db      = 'swipe_nest_db';
-$user    = 'root';
-$pass    = '';
+$host    = 'sql303.infinityfree.com';
+$db      = 'if0_42849201_swipe_nest';
+$user    = 'if0_42849201';
+$pass    = 'm6PDuWHBnimD8c';
 $charset = 'utf8mb4';
 $port    = 3306;
 
