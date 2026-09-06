@@ -142,6 +142,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             animation: fadeIn var(--transition-normal) forwards;
         }
         .auth-form.active { display: block; }
+        .pwd-wrapper { position: relative; }
+        .pwd-wrapper .input-field { padding-right: 42px; }
+        .pwd-eye {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-tertiary);
+            display: flex;
+            align-items: center;
+            padding: 0;
+        }
+        .pwd-eye:hover { color: var(--color-text-primary); }
     </style>
 </head>
 <body>
@@ -182,7 +198,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="input-group">
                     <label class="input-label">Password</label>
-                    <input type="password" name="password" class="input-field" required autocomplete="new-password">
+                    <div class="pwd-wrapper">
+                        <input type="password" name="password" class="input-field" required autocomplete="new-password">
+                        <button type="button" class="pwd-eye" onclick="togglePwd(this)"><i data-lucide="eye"></i></button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary w-full justify-center">Login</button>
                 <div style="text-align:center; margin-top: 12px; font-size: var(--text-sm);">
@@ -204,7 +223,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="input-group">
                     <label class="input-label">Password</label>
-                    <input type="password" name="password" class="input-field" required minlength="6" autocomplete="new-password">
+                    <div class="pwd-wrapper">
+                        <input type="password" name="password" class="input-field" required minlength="6" autocomplete="new-password">
+                        <button type="button" class="pwd-eye" onclick="togglePwd(this)"><i data-lucide="eye"></i></button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary w-full justify-center">Create Account</button>
             </form>
@@ -212,6 +234,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <script>
         lucide.createIcons();
+
+        function togglePwd(btn) {
+            const input = btn.previousElementSibling;
+            const icon  = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons({ nodes: [icon] });
+        }
+
         function switchTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));

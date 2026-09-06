@@ -1,5 +1,8 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params(['lifetime' => 0, 'path' => '/']);
+    session_start();
+}
 
 // If user is already authenticated, skip splash and go directly to home
 if (isset($_SESSION['user_id'])) {
